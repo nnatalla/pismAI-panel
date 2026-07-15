@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: panel-bitrix-app
+    name: panel-pismai
     runtime: node
     plan: free
     rootDir: server
