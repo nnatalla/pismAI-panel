@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Logowanie — Panel pismAI</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Inter","Segoe UI",Arial,sans-serif;
+    background: #0f172a;
+    display: flex; align-items: center; justify-content: center;
+    height: 100vh; margin: 0;
+  }
+  .box {
+    background: #fff; padding: 34px; border-radius: 14px; width: 340px;
+    box-shadow: 0 20px 60px rgba(0,0,0,.35);
+  }
+  .box h1 { font-size: 14pt; color: #0f172a; margin-bottom: 4px; }
+  .box p.sub { font-size: 9pt; color: #64748b; margin-bottom: 20px; }
+  input {
+    width: 100%; padding: 11px 12px; border: 1.5px solid #cbd5e1; border-radius: 8px;
+    font-size: 10.5pt; margin-bottom: 12px; font-family: inherit;
+  }
+  input:focus { outline: none; border-color: #2563eb; box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+  button {
+    width: 100%; padding: 11px; background: #2563eb; color: #fff; border: none;
+    border-radius: 8px; font-weight: 700; font-size: 10.5pt; cursor: pointer; font-family: inherit;
+  }
+  button:hover { background: #1d4ed8; }
+  button:disabled { background: #94a3b8; cursor: default; }
+  .err { color: #dc2626; font-size: 9pt; margin-bottom: 10px; min-height: 14px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <h1>📄 Panel pismAI</h1>
+  <p class="sub">Panel sprzedaży i wdrożeń — dostęp chroniony hasłem</p>
+  <div class="err" id="err"></div>
+  <input type="password" id="password" placeholder="Hasło dostępu" autofocus>
+  <button id="loginBtn" onclick="login()">Zaloguj</button>
+</div>
+<script>
+  document.getElementById('password').addEventListener('keydown', function(e){
+    if(e.key === 'Enter') login();
+  });
+
+  async function login(){
+    const password = document.getElementById('password').value;
+    const errEl = document.getElementById('err');
+    const btn = document.getElementById('loginBtn');
+    errEl.innerText = '';
+    if(!password){ errEl.innerText = 'Podaj hasło.'; return; }
+    btn.disabled = true; btn.innerText = 'Logowanie...';
+    try{
+      const r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: password })
+      });
+      if(r.ok){
+        window.location.href = '/';
+      } else {
+        const d = await r.json().catch(function(){ return {}; });
+        errEl.innerText = d.error || 'Błędne hasło.';
+      }
+    }catch(err){
+      errEl.innerText = 'Błąd połączenia z serwerem. Spróbuj ponownie.';
+    }
+    btn.disabled = false; btn.innerText = 'Zaloguj';
+  }
+</script>
+</body>
+</html>

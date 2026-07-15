@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: panel-bitrix-app
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: APP_PASSWORD
+        sync: false
+      - key: NODE_ENV
+        value: production

@@ -1,0 +1,1177 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>pismAI × Bitrix24 — Panel sprzedaży i wdrożeń</title>
+<style>
+  @page { size: A4; margin: 2cm; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family:"Inter","Segoe UI",Arial,sans-serif;
+    font-size:11pt; line-height:1.55; color:#1f2937; background:#f1f5f9;
+  }
+  /* ---------- APP CHROME ---------- */
+  .topbar {
+    background:#0f172a; color:#fff; padding:14px 24px;
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  .topbar .brand { display:flex; align-items:center; gap:10px; font-weight:800; font-size:14pt; }
+  .topbar .brand span.sub { font-weight:400; font-size:9.5pt; color:#94a3b8; }
+  .topbar .actions { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn {
+    display:inline-flex; align-items:center; gap:6px; cursor:pointer;
+    background:#2563eb; color:#fff; border:none; padding:9px 16px;
+    border-radius:8px; font-weight:600; font-size:9.5pt; font-family:inherit;
+  }
+  .btn:hover { background:#1d4ed8; }
+  .btn.secondary { background:#1e293b; color:#cbd5e1; }
+  .btn.secondary:hover { background:#334155; }
+  .btn.ghost { background:transparent; border:1.5px solid #334155; color:#cbd5e1; }
+  .btn.danger { background:#dc2626; }
+  .tabs {
+    display:flex; gap:4px; background:#1e293b; padding:0 24px; overflow-x:auto;
+  }
+  .tab {
+    padding:14px 18px; color:#94a3b8; font-weight:600; font-size:10pt; cursor:pointer;
+    border-bottom:3px solid transparent; white-space:nowrap;
+  }
+  .tab.active { color:#fff; border-bottom-color:#2563eb; }
+  .wrap { max-width:1100px; margin:0 auto; padding:24px 20px 80px; }
+  .panel { display:none; }
+  .panel.active { display:block; }
+  .card {
+    background:#fff; border:1px solid #e2e8f0; border-radius:12px;
+    padding:22px; margin-bottom:18px;
+  }
+  .card h2 {
+    font-size:13pt; font-weight:700; color:#0f172a; margin-bottom:16px;
+    padding-bottom:10px; border-bottom:1px solid #e2e8f0;
+  }
+  .card h3 { font-size:11pt; font-weight:700; color:#334155; margin:14px 0 8px; }
+  .row { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .row3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
+  .field { margin-bottom:14px; }
+  .field label { display:block; font-weight:600; color:#334155; margin-bottom:5px; font-size:9.5pt; }
+  .field .hint { font-size:8.5pt; color:#64748b; margin-top:4px; }
+  input, select, textarea {
+    width:100%; padding:9px 12px; border:1.5px solid #cbd5e1; border-radius:8px;
+    font-size:10pt; font-family:inherit; background:#fff; color:#0f172a;
+  }
+  textarea { resize:vertical; min-height:70px; }
+  input:focus, select:focus, textarea:focus {
+    outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.12);
+  }
+  .checklist { list-style:none; }
+  .checklist li { display:flex; align-items:flex-start; gap:9px; margin-bottom:9px; font-size:10pt; color:#334155; }
+  .checklist input[type=checkbox] { width:auto; margin-top:3px; accent-color:#2563eb; }
+  .checklist input[type=text] { width:200px; display:inline-block; margin-left:6px; }
+  .pill { display:inline-block; background:#eff6ff; color:#1d4ed8; font-size:8.5pt; font-weight:700;
+    padding:3px 10px; border-radius:999px; margin-left:8px; }
+  .banner {
+    background:#eff6ff; border:1px solid #bfdbfe; border-radius:10px; padding:14px 16px;
+    font-size:9.5pt; color:#1e40af; margin-bottom:18px;
+  }
+  .banner.warn { background:#fffbeb; border-color:#fde68a; color:#92400e; }
+  .calc-result {
+    background:#0f172a; color:#fff; border-radius:12px; padding:22px; margin-top:16px;
+  }
+  .calc-result .grid { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:14px; }
+  .calc-result .stat { background:#1e293b; border-radius:10px; padding:14px; }
+  .calc-result .stat .label { font-size:8.5pt; color:#94a3b8; text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px;}
+  .calc-result .stat .value { font-size:16pt; font-weight:800; color:#fff; }
+  .calc-result .stat .value.accent { color:#60a5fa; }
+  table.tbl { width:100%; border-collapse:collapse; font-size:9.5pt; margin-top:10px; }
+  table.tbl th { background:#f1f5f9; text-align:left; padding:8px 10px; font-weight:600; border-bottom:2px solid #e2e8f0; }
+  table.tbl td { padding:7px 10px; border-bottom:1px solid #f1f5f9; }
+  .fileRow { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:10px; }
+  .badge-ok { color:#16a34a; font-weight:700; font-size:9.5pt; }
+
+  /* ---------- PRINTABLE DOCUMENTS (Oferta / Protokół) ---------- */
+  .doc-frame { border:1px solid #e2e8f0; border-radius:12px; overflow:hidden; background:#fff; }
+  .doc { padding:20px; max-width:210mm; margin:0 auto; }
+  .doc-offer .header { display:flex; justify-content:space-between; align-items:flex-start;
+    border-bottom:3px solid #2563eb; padding-bottom:18px; margin-bottom:24px; }
+  .doc-offer .header-left h1 { font-size:19pt; font-weight:800; color:#0f172a; margin-bottom:4px; }
+  .doc-offer .header-left p { color:#64748b; font-size:10pt; }
+  .doc-offer .header-right { text-align:right; font-size:9pt; color:#64748b; }
+  .doc .meta-row { display:flex; margin-bottom:6px; font-size:10pt; }
+  .doc .meta-label { width:140px; font-weight:600; color:#475569; }
+  .doc-section { margin-bottom:20px; }
+  .doc-section h2 { font-size:12pt; font-weight:700; color:#0f172a; margin-bottom:10px;
+    padding-bottom:6px; border-bottom:1px solid #e2e8f0; }
+  .packages { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px; }
+  .package { border:1px solid #e2e8f0; border-radius:10px; padding:14px; background:#f8fafc; font-size:9.5pt; }
+  .package.recommended { border-color:#2563eb; background:#eff6ff; position:relative; }
+  .package.recommended::before {
+    content:"REKOMENDOWANE"; position:absolute; top:-9px; right:10px; background:#2563eb; color:#fff;
+    font-size:7.5pt; font-weight:700; padding:2px 8px; border-radius:999px;
+  }
+  .package h3 { font-size:11pt; margin-bottom:6px; color:#0f172a; }
+  .package .price { font-size:15pt; font-weight:800; color:#2563eb; margin-bottom:8px; }
+  .package ul { list-style:none; }
+  .package ul li { padding:3px 0 3px 16px; position:relative; color:#334155; }
+  .package ul li::before { content:"✓"; position:absolute; left:0; color:#16a34a; font-weight:700; }
+  .cta-box { background:linear-gradient(135deg,#eff6ff,#f5f3ff); border:1px solid #bfdbfe; border-radius:12px;
+    padding:20px; text-align:center; margin-top:24px; }
+  .doc-footer { margin-top:30px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:8.5pt;
+    color:#94a3b8; text-align:center; }
+
+  .doc-protocol { font-family:"Times New Roman",Times,serif; }
+  .doc-protocol .header { text-align:center; border-bottom:2px solid #0f172a; padding-bottom:14px; margin-bottom:20px; }
+  .doc-protocol .header h1 { font-size:15pt; font-weight:700; text-transform:uppercase; letter-spacing:1px; }
+  .doc-protocol .meta2 { display:flex; justify-content:space-between; margin-bottom:20px; font-size:10pt; gap:14px; }
+  .doc-protocol .meta-box { width:48%; border:1px solid #e2e8f0; border-radius:6px; padding:12px; }
+  .doc-protocol .meta-box h3 { font-size:10pt; text-transform:uppercase; margin-bottom:8px; border-bottom:1px solid #e2e8f0; padding-bottom:4px;}
+  .doc-protocol .section h2 { text-transform:uppercase; font-size:11.5pt; }
+  .doc-protocol .section p, .doc-protocol .section li { font-size:10.5pt; margin-bottom:7px; text-align:justify; color:#334155;}
+  .doc-protocol .price-box { background:#f8fafc; border:2px solid #0f172a; border-radius:8px; padding:14px; margin:12px 0; text-align:center; }
+  .doc-protocol .price-box .label { font-size:9pt; text-transform:uppercase; color:#475569; }
+  .doc-protocol .price-box .amount { font-size:18pt; font-weight:700; color:#0f172a; }
+  .doc-protocol .signature-area { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:40px; }
+  .doc-protocol .signature-box { border-top:1px solid #0f172a; padding-top:8px; font-size:9.5pt; }
+
+  @media print {
+    body * { visibility:hidden; }
+    .print-target, .print-target * { visibility:visible; }
+    .print-target { position:absolute; left:0; top:0; width:100%; }
+    .topbar, .tabs, .no-print { display:none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">📄 pismAI × Bitrix24 <span class="sub">panel sprzedaży i wdrożeń</span></div>
+  <div class="actions no-print">
+    <span id="contractorBadge" style="font-size:9pt;color:#94a3b8;align-self:center;margin-right:4px;">Nowy (niezapisany)</span>
+    <button class="btn secondary" onclick="newProject()">+ Nowy kontrahent</button>
+    <button class="btn" onclick="saveCurrentContractor()">💾 Zapisz</button>
+    <span id="saveStatus" style="font-size:8.5pt;color:#4ade80;align-self:center;"></span>
+    <button class="btn secondary" onclick="showContractorModal()">📁 Kontrahenci</button>
+    <button class="btn ghost" onclick="saveProject()" title="Zapisz lokalną kopię zapasową do pliku">⬇️ Kopia .json</button>
+    <button class="btn ghost" onclick="document.getElementById('loadProjectInput').click()" title="Wczytaj z lokalnego pliku zapasowego">📂 Import .json</button>
+    <input type="file" id="loadProjectInput" accept=".json" style="display:none" onchange="loadProjectFile(event)">
+    <button class="btn ghost" onclick="logout()">Wyloguj</button>
+  </div>
+</div>
+
+<div id="newProjectModal" class="no-print" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:26px; max-width:420px; width:90%; box-shadow:0 20px 50px rgba(0,0,0,.25);">
+    <h3 style="font-size:12.5pt; color:#0f172a; margin-bottom:10px;">Nowy kontrahent</h3>
+    <p style="font-size:10pt; color:#475569; line-height:1.5; margin-bottom:18px;">Wyczyścimy dane klienta, wymagania, kalkulację, ofertę i protokół — zacznie się nowy, niezapisany rekord. Dane Twojej firmy (Sprzedawca) zostaną zachowane. Bieżący kontrahent w bazie NIE zostanie usunięty (zostaje pod „📁 Kontrahenci"), ale jeśli miałeś niezapisane zmiany, przepadną — jeśli chcesz je zachować, najpierw kliknij „💾 Zapisz".</p>
+    <div style="display:flex; gap:10px; justify-content:flex-end;">
+      <button class="btn ghost" onclick="hideNewProjectModal()">Anuluj</button>
+      <button class="btn danger" onclick="confirmNewProject()">Tak, zacznij od nowa</button>
+    </div>
+  </div>
+</div>
+
+<div id="contractorModal" class="no-print" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,.55); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; border-radius:12px; padding:26px; max-width:560px; width:92%; max-height:78vh; overflow-y:auto; box-shadow:0 20px 50px rgba(0,0,0,.25);">
+    <h3 style="font-size:12.5pt; color:#0f172a; margin-bottom:14px;">Zapisani kontrahenci</h3>
+    <div id="contractorListBox"><p style="color:#64748b;font-size:9.5pt;">Wczytywanie…</p></div>
+    <div style="display:flex; justify-content:flex-end; margin-top:16px;">
+      <button class="btn ghost" onclick="hideContractorModal()">Zamknij</button>
+    </div>
+  </div>
+</div>
+
+<div class="tabs no-print">
+  <div class="tab active" data-tab="dane" onclick="switchTab('dane')">1. Dane</div>
+  <div class="tab" data-tab="formularz" onclick="switchTab('formularz')">2. Formularz wymagań</div>
+  <div class="tab" data-tab="kalkulacja" onclick="switchTab('kalkulacja')">3. Kalkulacja</div>
+  <div class="tab" data-tab="oferta" onclick="switchTab('oferta')">4. Oferta</div>
+  <div class="tab" data-tab="protokol" onclick="switchTab('protokol')">5. Protokół współpracy</div>
+  <div class="tab" data-tab="zalaczniki" onclick="switchTab('zalaczniki')">6. Załączniki</div>
+</div>
+
+<div class="wrap">
+
+  <!-- ============ TAB 1: DANE ============ -->
+  <div class="panel active" id="panel-dane">
+    <div class="card">
+      <h2>Twoja firma (Wykonawca)</h2>
+      <div class="row">
+        <div class="field"><label>Nazwa</label><input data-bind="seller.name" placeholder="pismAI"></div>
+        <div class="field"><label>NIP</label><input data-bind="seller.nip" placeholder="np. 000-000-00-00"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>REGON</label><input data-bind="seller.regon"></div>
+        <div class="field"><label>Stawka godzinowa wdrożeniowa (zł netto)</label><input type="number" data-bind="seller.hourlyRate" placeholder="250"></div>
+      </div>
+      <div class="field"><label>Adres</label><input data-bind="seller.address" placeholder="ul., kod, miasto"></div>
+      <div class="row">
+        <div class="field"><label>E-mail kontaktowy</label><input type="email" data-bind="seller.email" placeholder="kontakt@twojafirma.pl"></div>
+        <div class="field"><label>Telefon</label><input data-bind="seller.phone"></div>
+      </div>
+      <div class="hint">Te dane wypełniasz raz — zostaną zapisane w projekcie i użyte automatycznie w Ofercie i Protokole.</div>
+    </div>
+
+    <div class="card">
+      <h2>Dane klienta</h2>
+      <div class="row">
+        <div class="field"><label>Nazwa firmy *</label><input data-bind="company.name" placeholder="Nazwa firmy klienta"></div>
+        <div class="field"><label>NIP</label><input data-bind="company.nip"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Osoba kontaktowa *</label><input data-bind="company.contact"></div>
+        <div class="field"><label>Stanowisko</label><input data-bind="company.position" placeholder="np. Dyrektor operacyjny"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>E-mail *</label><input type="email" data-bind="company.email"></div>
+        <div class="field"><label>Telefon</label><input data-bind="company.phone"></div>
+      </div>
+      <h3>Środowisko CRM</h3>
+      <div class="row">
+        <div class="field"><label>Nazwa systemu CRM</label><input data-bind="company.crmName" placeholder="Bitrix24" oninput="updateCrmLabels()"></div>
+        <div class="field"><label>Domena / adres CRM</label><input data-bind="company.domain" placeholder="np. firma.bitrix24.pl"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Wersja / plan systemu</label>
+          <select data-bind="company.version">
+            <option value="">— wybierz —</option>
+            <option>Cloud</option>
+            <option>Self-Hosted</option>
+            <option>Enterprise / On-premise</option>
+            <option>Nie wiem</option>
+          </select>
+        </div>
+        <div class="field"><label>Liczba użytkowników</label><input type="number" data-bind="company.users" min="1"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label>Liczba firm/filii w CRM</label><input type="number" data-bind="company.branches" min="1" value="1"></div>
+        <div class="field" style="grid-column:span 2;"><label>Webhook / aplikacja w CRM</label>
+          <select data-bind="company.webhook">
+            <option value="">— wybierz —</option>
+            <option>Brak — zaczynamy od zera</option>
+            <option>Jest webhook</option>
+            <option>Jest lokalna aplikacja</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="banner">Wypełnione dane klienta pojawią się automatycznie w formularzu wymagań, ofercie i protokole współpracy — nie musisz ich przepisywać.</div>
+  </div>
+
+  <!-- ============ TAB 2: FORMULARZ WYMAGAŃ ============ -->
+  <div class="panel" id="panel-formularz">
+    <div class="card no-print">
+      <h2>Wymiana z klientem</h2>
+      <div class="fileRow">
+        <button class="btn" onclick="downloadClientForm()">📤 Generuj plik dla klienta (do wypełnienia)</button>
+        <button class="btn secondary" onclick="document.getElementById('loadReqInput').click()">📥 Wczytaj wypełniony formularz (.json)</button>
+        <input type="file" id="loadReqInput" accept=".json" style="display:none" onchange="loadRequirementsFile(event)">
+        <span id="reqImportStatus"></span>
+      </div>
+      <div class="hint" style="margin-top:8px;">„Generuj plik dla klienta" pobiera spersonalizowany, samodzielny formularz HTML (nagłówek już wypełniony danymi klienta). Klient otwiera go, zaznacza checkboxy i klika „Zapisz odpowiedzi" — pobiera się plik .json, który wgrywasz tutaj. Możesz też wypełnić poniższe pola bezpośrednio, jeśli zbierasz wymagania telefonicznie.</div>
+    </div>
+
+    <div class="card">
+      <h2>Zakres integracji</h2>
+      <div class="field"><label>Który pakiet Cię interesuje?</label>
+        <select data-bind="req.package">
+          <option value="pilot">Pilot — 1 typ pisma, podstawowa automatyzacja</option>
+          <option value="standard" selected>Standard — wszystkie typy, pełna sync</option>
+          <option value="enterprise">Enterprise — wiele firm, SLA, custom workflow</option>
+        </select>
+      </div>
+      <ul class="checklist">
+        <li><input type="checkbox" checked disabled> <strong>Automatyczne generowanie pisma po wezwaniu w <span class="crm-name">Bitrix24</span></strong> (zawsze wliczone)</li>
+        <li><input type="checkbox" checked disabled> <strong>PDF z odpowiedzią jako załącznik do sprawy w CRM</strong> (zawsze wliczone)</li>
+        <li><input type="checkbox" data-bind="req.scope.sync"> Synchronizacja kontaktów (dłużnicy/komornicy) <span class="crm-name">Bitrix24</span> ⇄ pismAI</li>
+        <li><input type="checkbox" data-bind="req.scope.autoTask"> Automatyczne tworzenie zadania po wygenerowaniu pisma</li>
+        <li><input type="checkbox" data-bind="req.scope.dealStatus"> Aktualizacja statusu sprawy w CRM po wygenerowaniu odpowiedzi</li>
+        <li><input type="checkbox" data-bind="req.scope.docBack"> Zwrot pisma do CRM jako dokument</li>
+        <li><input type="checkbox" data-bind="req.scope.apiButton"> Dostęp do API pismAI z poziomu <span class="crm-name">Bitrix24</span> (przycisk)</li>
+      </ul>
+    </div>
+
+    <div class="card">
+      <h2>Typy pism do integracji</h2>
+      <ul class="checklist">
+        <li><input type="checkbox" checked data-bind="req.letterTypes.komornicze"> Pisma komornicze</li>
+        <li><input type="checkbox" data-bind="req.letterTypes.urzedowe"> Pisma urzędowe (ZUS, US, gmina)</li>
+        <li><input type="checkbox" data-bind="req.letterTypes.bankowe"> Pisma bankowe/windykacyjne</li>
+        <li><input type="checkbox" data-bind="req.letterTypes.sadowe"> Pisma sądowe</li>
+        <li><input type="checkbox" data-bind="req.letterTypes.szkolne"> Pisma szkolne/uczelniane</li>
+        <li><input type="checkbox" data-bind="req.letterTypes.prywatne"> Pisma prywatne</li>
+        <li>Inne: <input type="text" data-bind="req.letterTypes.inne"></li>
+      </ul>
+      <div class="field" style="margin-top:10px;">
+        <label>Custom pola dla spraw komorniczych w <span class="crm-name">Bitrix24</span></label>
+        <select data-bind="req.customFieldsStatus">
+          <option value="">— wybierz —</option>
+          <option>Tak, wszystko skonfigurowane</option>
+          <option>Częściowo</option>
+          <option>Nie — od zera</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Procesy i automatyzacja</h2>
+      <div class="field"><label>Kiedy ma się generować pismo?</label>
+        <ul class="checklist">
+          <li><input type="checkbox" data-bind="req.triggers.onStatus"> Po zmianie statusu sprawy w CRM</li>
+          <li><input type="checkbox" data-bind="req.triggers.onSchedule"> Po dodaniu wpisu w harmonogramie/zadaniu</li>
+          <li><input type="checkbox" data-bind="req.triggers.onEmail"> Po otrzymaniu e-maila w <span class="crm-name">Bitrix24</span></li>
+          <li><input type="checkbox" checked data-bind="req.triggers.manual"> Manualnie — przycisk w interfejsie</li>
+          <li>Inne: <input type="text" data-bind="req.triggers.other"></li>
+        </ul>
+      </div>
+      <div class="field"><label>Kto zatwierdza pismo przed wysłaniem?</label>
+        <select data-bind="req.approver">
+          <option value="">— wybierz —</option>
+          <option>Kierownik/Dyrektor operacyjny</option>
+          <option>Pracownik ds. kadr</option>
+          <option>Prawnik/Kancelaria</option>
+          <option>Nikt — wysyłka automatyczna</option>
+        </select>
+      </div>
+      <div class="field"><label>Po wygenerowaniu pisma system ma automatycznie:</label>
+        <ul class="checklist">
+          <li><input type="checkbox" data-bind="req.postActions.changeStatus"> Zmienić status sprawy w CRM</li>
+          <li><input type="checkbox" data-bind="req.postActions.createTask"> Stworzyć zadanie „Wydrukuj i wyślij"</li>
+          <li><input type="checkbox" data-bind="req.postActions.notify"> Wysłać powiadomienie e-mail/SMS</li>
+          <li><input type="checkbox" data-bind="req.postActions.saveDrive"> Zapisać pismo na dysku <span class="crm-name">Bitrix24</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Baza pracowników i synchronizacja</h2>
+      <div class="field"><label>Synchronizacja bazy pracowników z <span class="crm-name">Bitrix24</span>?</label>
+        <select data-bind="req.employeeSync">
+          <option value="">— wybierz —</option>
+          <option value="yes" id="opt_sync_yes">Tak — import z CRM do pismAI</option>
+          <option value="no">Nie — dane ręcznie</option>
+          <option value="oneway" id="opt_sync_oneway">Tak, jednokierunkowo (pismAI → CRM)</option>
+        </select>
+      </div>
+      <div class="field"><label>Skąd dane pracowników (PESEL, imię, status zatrudnienia)?</label>
+        <ul class="checklist">
+          <li><input type="checkbox" data-bind="req.employeeSource.bitrixModule"> Moduł „Pracownicy" w <span class="crm-name">Bitrix24</span></li>
+          <li><input type="checkbox" data-bind="req.employeeSource.googleSheets"> Arkusz Google Sheets</li>
+          <li><input type="checkbox" data-bind="req.employeeSource.externalHR"> Zewnętrzny system kadrowy</li>
+          <li><input type="checkbox" data-bind="req.employeeSource.excel"> Excel/CSV — import jednorazowy</li>
+          <li>Inne: <input type="text" data-bind="req.employeeSource.other"></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Integracje i harmonogram</h2>
+      <div class="field"><label>Integracje z innymi systemami</label>
+        <ul class="checklist">
+          <li><input type="checkbox" data-bind="req.integrations.hr"> System kadrowy</li>
+          <li><input type="checkbox" data-bind="req.integrations.debt"> Platforma windykacyjna</li>
+          <li><input type="checkbox" data-bind="req.integrations.postal"> Usługi pocztowe/wysyłka listów</li>
+          <li>Inne: <input type="text" data-bind="req.integrations.other"></li>
+        </ul>
+      </div>
+      <div class="row">
+        <div class="field"><label>Planowany start wdrożenia</label>
+          <select data-bind="req.startPlan">
+            <option value="">— wybierz —</option>
+            <option>Jak najszybciej</option>
+            <option>W ciągu 1 miesiąca</option>
+            <option>W ciągu 3 miesięcy</option>
+            <option>Jeszcze nie ustalono</option>
+          </select>
+        </div>
+        <div class="field"><label>Termin docelowy (jeśli jest)</label><input data-bind="req.deadline" placeholder="np. do końca kwartału"></div>
+      </div>
+      <div class="field"><label>Uwagi dodatkowe</label><textarea data-bind="req.notes"></textarea></div>
+    </div>
+
+    <div class="card no-print">
+      <button class="btn" onclick="pushReqToCalc(); switchTab('kalkulacja')">Przenieś zakres do kalkulacji →</button>
+    </div>
+  </div>
+
+  <!-- ============ TAB 3: KALKULACJA ============ -->
+  <div class="panel" id="panel-kalkulacja">
+    <div class="card no-print">
+      <h2>Parametry wyceny</h2>
+      <div class="row3">
+        <div class="field"><label>Stawka godzinowa (zł)</label><input type="number" data-bind="seller.hourlyRate" oninput="recalcAndRender()"></div>
+        <div class="field"><label>Dodatkowe filie/podmioty (ponad 1)</label><input type="number" data-bind="calc.extraBranches" oninput="recalcAndRender()"></div>
+        <div class="field"><label>Dodatkowe typy pism (ponad 1)</label><input type="number" data-bind="calc.extraLetterTypes" oninput="recalcAndRender()"></div>
+      </div>
+      <div class="row3">
+        <div class="field"><label><input type="checkbox" data-bind="calc.includeSync" style="width:auto;display:inline-block;margin-right:6px;" oninput="recalcAndRender()">Synchronizacja kontaktów (+4h)</label></div>
+        <div class="field"><label><input type="checkbox" data-bind="calc.includeAutomation" style="width:auto;display:inline-block;margin-right:6px;" oninput="recalcAndRender()">Automatyzacje zadań/statusów (+2h)</label></div>
+        <div class="field"><label>Miesięcy utrzymania w kalkulacji</label><input type="number" data-bind="calc.maintenanceMonths" oninput="recalcAndRender()"></div>
+      </div>
+      <div class="row">
+        <div class="field"><label>Rabat handlowy (%)</label><input type="number" data-bind="calc.discountPercent" min="0" max="50" oninput="recalcAndRender()"></div>
+        <div class="field"><label>Ręczna cena końcowa wdrożenia (zł) — opcjonalnie nadpisuje wyliczoną</label><input type="number" data-bind="calc.finalSetupOverride" placeholder="pozostaw puste = użyj wyliczonej" oninput="recalcAndRender()"></div>
+      </div>
+      <div class="hint">Filie/typy pism/sync/automatyzacja podpowiadają się z zakładki „Formularz wymagań" po kliknięciu „Przenieś zakres do kalkulacji" — możesz je tutaj dowolnie skorygować.</div>
+    </div>
+
+    <div class="card no-print" style="text-align:center;">
+      <button class="btn" onclick="recalcAndRender()" style="font-size:11pt;padding:12px 32px;">🔄 Przelicz kalkulację</button>
+      <div class="hint" style="margin-top:8px;">Wynik przelicza się też automatycznie po każdej zmianie pól powyżej — ten przycisk odświeża podsumowanie na żądanie.</div>
+    </div>
+    <div class="calc-result no-print" id="calcResultBox"></div>
+    <div class="card no-print" style="margin-top:16px;">
+      <button class="btn" onclick="switchTab('oferta')">Przejdź do generowania oferty →</button>
+    </div>
+  </div>
+
+  <!-- ============ TAB 4: OFERTA ============ -->
+  <div class="panel" id="panel-oferta">
+    <div class="card no-print">
+      <h2>Ustawienia oferty</h2>
+      <div class="row">
+        <div class="field"><label>Numer oferty</label><input data-bind="offer.number" oninput="renderOffer()"></div>
+        <div class="field"><label>Ważna do</label><input type="date" data-bind="offer.validUntil" oninput="renderOffer()"></div>
+      </div>
+      <button class="btn" onclick="window.print()">🖨️ Drukuj / Zapisz jako PDF</button>
+    </div>
+    <div class="doc-frame print-target" id="offerDoc"></div>
+  </div>
+
+  <!-- ============ TAB 5: PROTOKÓŁ ============ -->
+  <div class="panel" id="panel-protokol">
+    <div class="card no-print">
+      <h2>Ustawienia protokołu</h2>
+      <div class="row3">
+        <div class="field"><label>Miejscowość podpisania</label><input data-bind="protocol.city" oninput="renderProtocol()"></div>
+        <div class="field"><label>Data podpisania</label><input type="date" data-bind="protocol.date" oninput="renderProtocol()"></div>
+        <div class="field"><label>Miesięczne wsparcie — czas reakcji</label><input data-bind="protocol.reactionTime" placeholder="do 4 godzin" oninput="renderProtocol()"></div>
+      </div>
+      <button class="btn" onclick="window.print()">🖨️ Drukuj / Zapisz jako PDF</button>
+    </div>
+    <div class="doc-frame print-target" id="protocolDoc"></div>
+  </div>
+
+  <!-- ============ TAB 6: ZAŁĄCZNIKI ============ -->
+  <div class="panel" id="panel-zalaczniki">
+    <div class="card no-print">
+      <h2>Załączniki kontrahenta <span id="contractorBadge2" style="font-weight:400;font-size:9.5pt;color:#64748b;"></span></h2>
+      <div class="fileRow">
+        <input type="file" id="fileUploadInput" style="max-width:320px;">
+        <button class="btn" onclick="uploadAttachment()">📤 Wgraj plik</button>
+      </div>
+      <div class="hint" style="margin-top:8px;">Maksymalny rozmiar pliku: 15 MB. Pliki (skany, umowy, protokoły, PDF-y) są przechowywane bezpiecznie w bazie danych, powiązane z tym konkretnym kontrahentem. Aby dodać załącznik, kontrahent musi być najpierw zapisany (przycisk „💾 Zapisz" w górnym pasku).</div>
+      <div id="attachmentsListBox" style="margin-top:16px;"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ======================= STATE ======================= */
+let state = {
+  seller:{name:'pismAI', nip:'', regon:'', address:'', email:'', phone:'', hourlyRate:250},
+  company:{name:'', nip:'', contact:'', position:'', email:'', phone:'', crmName:'Bitrix24', domain:'', version:'', users:'', branches:1, webhook:''},
+  req:{
+    package:'standard',
+    letterTypes:{komornicze:true, urzedowe:false, bankowe:false, sadowe:false, szkolne:false, prywatne:false, inne:''},
+    scope:{sync:false, autoTask:false, dealStatus:false, docBack:false, apiButton:false},
+    customFieldsStatus:'',
+    triggers:{onStatus:false, onSchedule:false, onEmail:false, manual:true, other:''},
+    approver:'',
+    postActions:{changeStatus:false, createTask:false, notify:false, saveDrive:false},
+    employeeSync:'', employeeSource:{bitrixModule:false, googleSheets:false, externalHR:false, excel:false, other:''},
+    integrations:{hr:false, debt:false, postal:false, other:''},
+    notes:'', startPlan:'', deadline:''
+  },
+  calc:{extraBranches:0, extraLetterTypes:0, includeSync:false, includeAutomation:false, maintenanceMonths:12, discountPercent:0, finalSetupOverride:null},
+  offer:{number:'', validUntil:''},
+  protocol:{city:'', date:'', reactionTime:'do 4 godzin'}
+};
+const INITIAL_STATE = JSON.parse(JSON.stringify(state));
+
+/* ======================= HELPERS ======================= */
+function getPath(o,p){ return p.split('.').reduce((a,k)=> (a==null? a : a[k]), o); }
+function setPath(o,p,v){ const parts=p.split('.'); let cur=o; for(let i=0;i<parts.length-1;i++){ cur=cur[parts[i]]; } cur[parts[parts.length-1]]=v; }
+function fmt(n){ return (Math.round(n*100)/100).toLocaleString('pl-PL',{minimumFractionDigits:0,maximumFractionDigits:0}) + ' zł'; }
+function todayISO(){ return new Date().toISOString().slice(0,10); }
+function addDays(iso,d){ const dt=new Date(iso); dt.setDate(dt.getDate()+d); return dt.toISOString().slice(0,10); }
+function fmtDatePL(iso){ if(!iso) return '—'; const parts=iso.split('-'); return parts[2]+'.'+parts[1]+'.'+parts[0]; }
+function crmName(){ const v = (state.company.crmName||'').trim(); return v ? v : 'Bitrix24'; }
+
+/* ======================= BINDING ======================= */
+function updateCrmLabels(){
+  const crm = state.company.crmName || 'Bitrix24';
+  document.querySelectorAll('.crm-name').forEach(el=>{ el.textContent = crm; });
+  const optYes = document.getElementById('opt_sync_yes');
+  if(optYes) optYes.textContent = 'Tak — import z '+crm+' do pismAI';
+  const optOneway = document.getElementById('opt_sync_oneway');
+  if(optOneway) optOneway.textContent = 'Tak, jednokierunkowo (pismAI → '+crm+')';
+}
+function bindAll(){
+  document.querySelectorAll('[data-bind]').forEach(el=>{
+    const path = el.getAttribute('data-bind');
+    const val = getPath(state, path);
+    if(el.type==='checkbox'){ el.checked = !!val; }
+    else if(document.activeElement !== el) { el.value = (val===undefined||val===null) ? '' : val; }
+    el.oninput = null;
+    el.addEventListener('input', ()=>{
+      let v = el.type==='checkbox' ? el.checked : el.value;
+      if(el.type==='number' && v!=='') v = parseFloat(v);
+      if(el.type==='number' && v==='') v = null;
+      setPath(state, path, v);
+    });
+  });
+  updateCrmLabels();
+}
+
+/* ======================= TABS ======================= */
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.toggle('active', t.dataset.tab===name));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='kalkulacja') recalcAndRender();
+  if(name==='oferta') renderOffer();
+  if(name==='protokol') renderProtocol();
+  if(name==='zalaczniki') refreshAttachmentsList();
+}
+
+/* ======================= PROJECT SAVE/LOAD ======================= */
+function download(filename, text){
+  const blob = new Blob([text], {type:'application/octet-stream'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download=filename; document.body.appendChild(a); a.click();
+  document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+function saveProject(){
+  const name = (state.company.name || 'projekt').replace(/[^a-z0-9ąćęłńóśźż]+/gi,'_');
+  download('projekt_'+name+'.json', JSON.stringify(state, null, 2));
+}
+function loadProjectFile(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const loaded = JSON.parse(e.target.result);
+      state = Object.assign(state, loaded);
+      currentContractorId = null;
+      bindAll(); recalcAndRender();
+      updateContractorBadge();
+      refreshAttachmentsList();
+      alert('Projekt wczytany z pliku: '+ (state.company.name||'') + '\n\nUwaga: to lokalna kopia zapasowa, jeszcze niezapisana w bazie. Kliknij „💾 Zapisz", aby ją zapisać jako nowego kontrahenta.');
+    }catch(err){ alert('Nieprawidłowy plik projektu.'); }
+  };
+  reader.readAsText(file);
+}
+function showNewProjectModal(){
+  document.getElementById('newProjectModal').style.display = 'flex';
+}
+function hideNewProjectModal(){
+  document.getElementById('newProjectModal').style.display = 'none';
+}
+function newProject(){
+  showNewProjectModal();
+}
+function confirmNewProject(){
+  const keepSeller = JSON.parse(JSON.stringify(state.seller));
+  state = JSON.parse(JSON.stringify(INITIAL_STATE));
+  state.seller = keepSeller;
+  currentContractorId = null;
+  bindAll();
+  recalcAndRender();
+  const statusEl = document.getElementById('reqImportStatus');
+  if(statusEl) statusEl.innerHTML = '';
+  const loadProjectInput = document.getElementById('loadProjectInput');
+  if(loadProjectInput) loadProjectInput.value = '';
+  const loadReqInput = document.getElementById('loadReqInput');
+  if(loadReqInput) loadReqInput.value = '';
+  const offerDoc = document.getElementById('offerDoc');
+  if(offerDoc) offerDoc.innerHTML = '';
+  const protocolDoc = document.getElementById('protocolDoc');
+  if(protocolDoc) protocolDoc.innerHTML = '';
+  updateContractorBadge();
+  refreshAttachmentsList();
+  hideNewProjectModal();
+  switchTab('dane');
+}
+
+/* ======================= FORMULARZ WYMAGAŃ — EKSPORT DLA KLIENTA ======================= */
+function downloadClientForm(){
+  const c = state.company;
+  const html = buildClientFormHTML(c);
+  const name = (c.name||'klient').replace(/[^a-z0-9ąćęłńóśźż]+/gi,'_');
+  download('formularz_wymagan_'+name+'.html', html);
+}
+
+function buildClientFormHTML(c){
+  var crm = c.crmName || 'Bitrix24';
+  var lines = [];
+  lines.push('<!DOCTYPE html><html lang="pl"><head><meta charset="UTF-8">');
+  lines.push('<title>Formularz wymagań — Integracja pismAI z '+esc(crm)+' — '+esc(c.name||'')+'</title>');
+  lines.push('<style>');
+  lines.push('body{font-family:Inter,Segoe UI,Arial,sans-serif;font-size:11pt;line-height:1.55;color:#1f2937;max-width:800px;margin:0 auto;padding:30px;}');
+  lines.push('.header{border-bottom:3px solid #2563eb;padding-bottom:16px;margin-bottom:24px;}');
+  lines.push('.header h1{font-size:19pt;font-weight:800;color:#0f172a;}');
+  lines.push('.header p{color:#64748b;font-size:10pt;margin-top:6px;}');
+  lines.push('.banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;font-size:10pt;color:#1e40af;margin-bottom:18px;}');
+  lines.push('.section{margin-bottom:20px;background:#fff;}');
+  lines.push('.section h2{font-size:12pt;font-weight:700;color:#0f172a;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;}');
+  lines.push('.checklist{list-style:none;padding:0;}');
+  lines.push('.checklist li{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;font-size:10.5pt;}');
+  lines.push('.checklist input[type=checkbox]{margin-top:3px;}');
+  lines.push('select,textarea,input[type=text]{width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:10pt;font-family:inherit;margin-top:4px;}');
+  lines.push('.btnbar{position:sticky;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:14px 0;text-align:center;margin-top:30px;}');
+  lines.push('.btn{background:#2563eb;color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:700;font-size:11pt;cursor:pointer;}');
+  lines.push('.status{margin-top:10px;font-size:10pt;color:#16a34a;font-weight:600;}');
+  lines.push('</style></head><body>');
+  lines.push('<div class="header"><h1>Formularz wymagań — Integracja pismAI z '+esc(crm)+'</h1>');
+  lines.push('<p>Firma: <strong>'+esc(c.name||'—')+'</strong> · Osoba kontaktowa: '+esc(c.contact||'—')+'</p></div>');
+  lines.push('<div class="banner">Prosimy o zaznaczenie odpowiednich opcji, a następnie kliknięcie przycisku <strong>„Zapisz odpowiedzi"</strong> na dole strony. Pobrany plik .json prosimy odesłać na nasz adres e-mail.</div>');
+
+  lines.push('<div class="section"><h2>1. Zakres integracji</h2>');
+  lines.push('<label>Który pakiet Cię interesuje?</label>');
+  lines.push('<select id="package"><option value="pilot">Pilot</option><option value="standard" selected>Standard</option><option value="enterprise">Enterprise</option></select>');
+  lines.push('<ul class="checklist" style="margin-top:12px;">');
+  lines.push('<li><input type="checkbox" checked disabled> Automatyczne generowanie pisma po wezwaniu (zawsze wliczone)</li>');
+  lines.push('<li><input type="checkbox" checked disabled> PDF jako załącznik do sprawy w CRM (zawsze wliczone)</li>');
+  lines.push('<li><input type="checkbox" id="sync"> Synchronizacja kontaktów (dłużnicy/komornicy)</li>');
+  lines.push('<li><input type="checkbox" id="autoTask"> Automatyczne tworzenie zadania po wygenerowaniu pisma</li>');
+  lines.push('<li><input type="checkbox" id="dealStatus"> Aktualizacja statusu sprawy w CRM</li>');
+  lines.push('<li><input type="checkbox" id="docBack"> Zwrot pisma do CRM jako dokument</li>');
+  lines.push('<li><input type="checkbox" id="apiButton"> Dostęp do API pismAI z poziomu '+esc(crm)+'</li>');
+  lines.push('</ul></div>');
+
+  lines.push('<div class="section"><h2>2. Typy pism</h2><ul class="checklist">');
+  lines.push('<li><input type="checkbox" id="t_komornicze" checked> Pisma komornicze</li>');
+  lines.push('<li><input type="checkbox" id="t_urzedowe"> Pisma urzędowe (ZUS, US, gmina)</li>');
+  lines.push('<li><input type="checkbox" id="t_bankowe"> Pisma bankowe/windykacyjne</li>');
+  lines.push('<li><input type="checkbox" id="t_sadowe"> Pisma sądowe</li>');
+  lines.push('<li><input type="checkbox" id="t_szkolne"> Pisma szkolne/uczelniane</li>');
+  lines.push('<li><input type="checkbox" id="t_prywatne"> Pisma prywatne</li>');
+  lines.push('<li>Inne: <input type="text" id="t_inne" style="width:220px;"></li>');
+  lines.push('</ul></div>');
+
+  lines.push('<div class="section"><h2>3. Środowisko '+esc(crm)+'</h2>');
+  lines.push('<label>Domena / adres '+esc(crm)+'</label><input type="text" id="domain" placeholder="np. firma.bitrix24.pl">');
+  lines.push('<label style="margin-top:10px;display:block;">Liczba firm/filii w CRM</label><input type="text" id="branches" placeholder="np. 1">');
+  lines.push('</div>');
+
+  lines.push('<div class="section"><h2>4. Procesy i automatyzacja</h2>');
+  lines.push('<label>Kto zatwierdza pismo przed wysłaniem?</label>');
+  lines.push('<select id="approver"><option value="">— wybierz —</option><option>Kierownik/Dyrektor operacyjny</option><option>Pracownik ds. kadr</option><option>Prawnik/Kancelaria</option><option>Nikt — wysyłka automatyczna</option></select>');
+  lines.push('</div>');
+
+  lines.push('<div class="section"><h2>5. Baza pracowników</h2>');
+  lines.push('<label>Synchronizacja bazy pracowników z '+esc(crm)+'?</label>');
+  lines.push('<select id="employeeSync"><option value="">— wybierz —</option><option value="yes">Tak</option><option value="no">Nie</option><option value="oneway">Tak, jednokierunkowo</option></select>');
+  lines.push('</div>');
+
+  lines.push('<div class="section"><h2>6. Uwagi dodatkowe</h2>');
+  lines.push('<textarea id="notes" rows="4" placeholder="Opisz niestandardowe potrzeby..."></textarea>');
+  lines.push('</div>');
+
+  lines.push('<div class="btnbar"><button class="btn" onclick="saveAnswers()">Zapisz odpowiedzi (.json)</button><div class="status" id="status"></div></div>');
+
+  lines.push('<script>');
+  lines.push('function val(id){var e=document.getElementById(id); return e? (e.type==="checkbox"? e.checked : e.value) : "";}');
+  lines.push('function saveAnswers(){');
+  lines.push('var data={');
+  lines.push('company:{name:'+JSON.stringify(c.name||'')+', contact:'+JSON.stringify(c.contact||'')+', domain:val("domain"), branches:val("branches")},');
+  lines.push('req:{package:val("package"),');
+  lines.push('letterTypes:{komornicze:val("t_komornicze"),urzedowe:val("t_urzedowe"),bankowe:val("t_bankowe"),sadowe:val("t_sadowe"),szkolne:val("t_szkolne"),prywatne:val("t_prywatne"),inne:val("t_inne")},');
+  lines.push('scope:{sync:val("sync"),autoTask:val("autoTask"),dealStatus:val("dealStatus"),docBack:val("docBack"),apiButton:val("apiButton")},');
+  lines.push('approver:val("approver"), employeeSync:val("employeeSync"), notes:val("notes")}');
+  lines.push('};');
+  lines.push('var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});');
+  lines.push('var url=URL.createObjectURL(blob);');
+  lines.push('var a=document.createElement("a"); a.href=url; a.download="odpowiedzi_'+ (c.name||'klient').replace(/[^a-z0-9]+/gi,'_') +'.json"; document.body.appendChild(a); a.click(); document.body.removeChild(a);');
+  lines.push('document.getElementById("status").innerText="\u2713 Zapisano. Prosimy odes\u0142a\u0107 pobrany plik na nasz adres e-mail.";');
+  lines.push('}');
+  lines.push('<\/script>');
+  lines.push('</body></html>');
+  return lines.join('\n');
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+function loadRequirementsFile(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try{
+      const data = JSON.parse(e.target.result);
+      if(data.company){ Object.assign(state.company, data.company); }
+      if(data.req){
+        if(data.req.package) state.req.package = data.req.package;
+        if(data.req.letterTypes) Object.assign(state.req.letterTypes, normalizeBoolMap(data.req.letterTypes));
+        if(data.req.scope) Object.assign(state.req.scope, normalizeBoolMap(data.req.scope));
+        if(data.req.approver) state.req.approver = data.req.approver;
+        if(data.req.employeeSync) state.req.employeeSync = data.req.employeeSync;
+        if(data.req.notes) state.req.notes = data.req.notes;
+      }
+      bindAll();
+      document.getElementById('reqImportStatus').innerHTML = '<span class="badge-ok">✓ Wczytano odpowiedzi klienta</span>';
+    }catch(err){ alert('Nieprawidłowy plik odpowiedzi.'); }
+  };
+  reader.readAsText(file);
+}
+function normalizeBoolMap(obj){
+  const out = {};
+  Object.keys(obj).forEach(function(k){
+    const v = obj[k];
+    if(v===true || v==='true') out[k] = true;
+    else if(v===false || v==='false') out[k] = false;
+    else out[k] = v;
+  });
+  return out;
+}
+
+/* ======================= PRZENIESIENIE ZAKRESU DO KALKULACJI ======================= */
+function pushReqToCalc(){
+  state.calc.extraBranches = Math.max(0, (parseInt(state.company.branches)||1) - 1);
+  const lt = state.req.letterTypes;
+  const count = ['komornicze','urzedowe','bankowe','sadowe','szkolne','prywatne'].filter(function(k){ return lt[k]; }).length + (lt.inne ? 1 : 0);
+  state.calc.extraLetterTypes = Math.max(0, count - 1);
+  state.calc.includeSync = !!state.req.scope.sync;
+  state.calc.includeAutomation = !!(state.req.scope.autoTask || state.req.scope.dealStatus || state.req.scope.docBack);
+  bindAll();
+}
+
+/* ======================= KALKULACJA ======================= */
+const PKG = {
+  pilot:      { label:'Pilot',      mult:1.0, days:5,  maint:0,   listPrice:1500 },
+  standard:   { label:'Standard',   mult:1.8, days:15, maint:200, listPrice:3500 },
+  enterprise: { label:'Enterprise', mult:2.8, days:25, maint:400, listPrice:6000 }
+};
+
+function computeCalc(){
+  const pkg = PKG[state.req.package] || PKG.standard;
+  const rate = Number(state.seller.hourlyRate) || 250;
+  const baseHours = 9;
+  const syncH = state.calc.includeSync ? 4 : 0;
+  const autoH = state.calc.includeAutomation ? 2 : 0;
+  const branchH = (Number(state.calc.extraBranches)||0) * 4;
+  const letterH = (Number(state.calc.extraLetterTypes)||0) * 3;
+  const totalHours = baseHours*pkg.mult + syncH + autoH + branchH + letterH;
+
+  let setupCost = totalHours * rate;
+  const discount = Number(state.calc.discountPercent) || 0;
+  setupCost = setupCost * (1 - discount/100);
+  if(state.calc.finalSetupOverride !== null && state.calc.finalSetupOverride !== undefined && state.calc.finalSetupOverride !== '' && !isNaN(state.calc.finalSetupOverride)){
+    setupCost = Number(state.calc.finalSetupOverride);
+  }
+
+  const maintMonthly = pkg.maint;
+  const months = Number(state.calc.maintenanceMonths) || 12;
+  const maintTotal = maintMonthly * months;
+  const total = setupCost + maintTotal;
+  const workingDays = Math.max(pkg.days, Math.ceil(totalHours/7.5*5));
+
+  return { pkg:pkg, rate:rate, totalHours:totalHours, setupCost:setupCost, maintMonthly:maintMonthly, maintTotal:maintTotal, total:total, workingDays:workingDays, discount:discount };
+}
+
+function recalcAndRender(){
+  bindAll();
+  const r = computeCalc();
+  const box = document.getElementById('calcResultBox');
+  box.innerHTML =
+    '<h3 style="color:#fff;font-size:12pt;">Wynik kalkulacji — pakiet '+r.pkg.label+'</h3>'+
+    '<div class="grid">'+
+      '<div class="stat"><div class="label">Godziny wdrożenia</div><div class="value">'+r.totalHours.toFixed(1)+' h</div></div>'+
+      '<div class="stat"><div class="label">Koszt wdrożenia</div><div class="value accent">'+fmt(r.setupCost)+'</div></div>'+
+      '<div class="stat"><div class="label">Utrzymanie / mies.</div><div class="value">'+fmt(r.maintMonthly)+'</div></div>'+
+      '<div class="stat"><div class="label">Czas realizacji</div><div class="value">'+r.workingDays+' dni rob.</div></div>'+
+    '</div>'+
+    '<div class="grid" style="margin-top:10px;">'+
+      '<div class="stat"><div class="label">Rabat zastosowany</div><div class="value">'+r.discount+'%</div></div>'+
+      '<div class="stat"><div class="label">Utrzymanie łącznie ('+(state.calc.maintenanceMonths||12)+' mies.)</div><div class="value">'+fmt(r.maintTotal)+'</div></div>'+
+      '<div class="stat" style="grid-column:span 2;"><div class="label">SUMA CAŁKOWITA</div><div class="value accent" style="font-size:20pt;">'+fmt(r.total)+'</div></div>'+
+    '</div>';
+}
+
+/* ======================= OFERTA ======================= */
+function renderOffer(){
+  bindAll();
+  if(!state.offer.number) state.offer.number = 'AV-BIT-' + new Date().getFullYear() + '-001';
+  if(!state.offer.validUntil) state.offer.validUntil = addDays(todayISO(), 14);
+  document.querySelector('[data-bind="offer.number"]').value = state.offer.number;
+  document.querySelector('[data-bind="offer.validUntil"]').value = state.offer.validUntil;
+
+  const r = computeCalc();
+  const rec = state.req.package;
+  const s = state.seller, c = state.company;
+  const crm = crmName();
+
+  function pkgCard(key){
+    const p = PKG[key];
+    const recommended = key===rec;
+    const featsMap = {
+      pilot:['OAuth 2.0 + 1 webhook','Generowanie pisma z rekordu CRM','PDF jako załącznik do CRM','1 typ pisma','30 dni wsparcia'],
+      standard:['Wszystkie typy pism','Pełna sync kontaktów','Automatyczne zadania','Aktualizacja statusów','Baza pracowników','60 dni wsparcia'],
+      enterprise:['Wszystkie funkcje Standard','Wiele firm/filii','Niestandardowe workflow','Własne szablony','SLA 99,9%','Dedykowany opiekun']
+    };
+    const feats = featsMap[key];
+    const price = key===rec ? fmt(r.setupCost) : (key==='enterprise' ? 'od '+fmt(p.listPrice) : fmt(p.listPrice));
+    return '<div class="package '+(recommended?'recommended':'')+'">'+
+      '<h3>'+p.label+'</h3><div class="price">'+price+'</div>'+
+      '<ul>'+feats.map(function(f){ return '<li>'+f+'</li>'; }).join('')+'</ul>'+
+    '</div>';
+  }
+
+  const e1o = Math.round(r.workingDays*0.25), e2o = Math.round(r.workingDays*0.45), e3o = r.workingDays - e1o - e2o;
+
+  document.getElementById('offerDoc').innerHTML =
+  '<div class="doc doc-offer">'+
+    '<div class="header">'+
+      '<div class="header-left"><h1>Integracja pismAI z '+esc(crm)+'</h1><p>Oferta współpracy — automatyzacja odpowiedzi na pisma dla '+esc(c.name||'Klienta')+'</p></div>'+
+      '<div class="header-right"><div>Oferta ważna do: '+fmtDatePL(state.offer.validUntil)+'</div><div>Numer oferty: '+esc(state.offer.number)+'</div></div>'+
+    '</div>'+
+    '<div class="meta-row"><div class="meta-label">Sprzedawca:</div><div>'+esc(s.name)+(s.nip? ' — NIP: '+esc(s.nip):'')+'</div></div>'+
+    '<div class="meta-row"><div class="meta-label">Nabywca:</div><div>'+esc(c.name||'—')+(c.nip? ' — NIP: '+esc(c.nip):'')+'</div></div>'+
+    '<div class="meta-row"><div class="meta-label">Osoba kontaktowa:</div><div>'+esc(c.contact||'—')+'</div></div>'+
+
+    '<div class="doc-section"><h2>1. Cel integracji</h2>'+
+      '<p>Celem jest automatyczne generowanie profesjonalnych odpowiedzi na pisma bezpośrednio w środowisku '+esc(crm)+(c.domain? ' ('+esc(c.domain)+')':'')+'. System pismAI odczytuje dokument, rozpoznaje dane i tworzy gotową odpowiedź, która trafia do CRM jako załącznik do sprawy.</p></div>'+
+
+    '<div class="doc-section"><h2>2. Zakres integracji — pakiety</h2>'+
+      '<div class="packages">'+pkgCard('pilot')+pkgCard('standard')+pkgCard('enterprise')+'</div></div>'+
+
+    '<div class="doc-section"><h2>3. Wycena dla '+esc(c.name||'Klienta')+' — pakiet '+r.pkg.label+'</h2>'+
+      '<table class="tbl">'+
+        '<tr><th>Pozycja</th><th>Wartość</th></tr>'+
+        '<tr><td>Koszt wdrożenia (jednorazowo)</td><td>'+fmt(r.setupCost)+'</td></tr>'+
+        '<tr><td>Utrzymanie miesięczne</td><td>'+fmt(r.maintMonthly)+' / mies.</td></tr>'+
+        '<tr><td>Szacowany czas realizacji</td><td>'+r.workingDays+' dni roboczych</td></tr>'+
+        '<tr><td>Suma za pierwsze '+(state.calc.maintenanceMonths||12)+' mies.</td><td><strong>'+fmt(r.total)+'</strong></td></tr>'+
+      '</table>'+
+    '</div>'+
+
+    '<div class="doc-section"><h2>4. Harmonogram wdrożenia</h2>'+
+      '<p><strong>Etap 1</strong> ('+e1o+' dni) — analiza wymagań, konfiguracja OAuth 2.0, mapowanie pól '+esc(crm)+' → pismAI.</p>'+
+      '<p><strong>Etap 2</strong> ('+e2o+' dni) — webhooki, testy na środowisku testowym, poprawki.</p>'+
+      '<p><strong>Etap 3</strong> ('+e3o+' dni) — wdrożenie produkcyjne, szkolenie, przekazanie.</p>'+
+    '</div>'+
+
+    '<div class="doc-section"><h2>5. Co wliczone / co nie wliczone</h2>'+
+      '<div class="row">'+
+        '<div class="package"><h3>✓ Wliczone</h3><ul><li>Połączenie API/webhook</li><li>Mapowanie pól CRM</li><li>Konfiguracja automatów</li><li>Testy i poprawki</li><li>Dokumentacja</li><li>Szkolenie 1h</li></ul></div>'+
+        '<div class="package"><h3>✗ Dodatkowe koszty</h3><ul style="list-style:none;"><li>— Utrzymanie: od 150 zł/mies.</li><li>— Nowe typy pism: od 500 zł</li><li>— Zmiany w CRM: '+fmt(state.seller.hourlyRate||250)+'/h</li><li>— Integracja z innym systemem: indywidualnie</li></ul></div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="cta-box">'+
+      '<h3 style="color:#0f172a;margin-bottom:8px;">Gotowi rozpocząć?</h3>'+
+      '<p style="color:#475569;margin-bottom:14px;">Podpiszcie Państwo protokół współpracy — rozpoczynamy prace w ciągu 24 godzin od zaksięgowania płatności.</p>'+
+      '<a class="btn" href="mailto:'+esc(s.email)+'?subject=Akceptacja oferty '+esc(state.offer.number)+'" style="text-decoration:none;">Akceptuję ofertę</a>'+
+    '</div>'+
+    '<div class="doc-footer">© '+new Date().getFullYear()+' '+esc(s.name)+(s.nip? ' — NIP: '+esc(s.nip):'')+(s.regon? ' — REGON: '+esc(s.regon):'')+'</div>'+
+  '</div>';
+}
+
+/* ======================= PROTOKÓŁ WSPÓŁPRACY ======================= */
+function renderProtocol(){
+  bindAll();
+  if(!state.protocol.date) state.protocol.date = todayISO();
+  document.querySelector('[data-bind="protocol.date"]').value = state.protocol.date;
+
+  const r = computeCalc();
+  const s = state.seller, c = state.company;
+  const crm = crmName();
+  const e1 = Math.round(r.workingDays*0.25), e2 = Math.round(r.workingDays*0.45), e3 = r.workingDays-e1-e2;
+
+  document.getElementById('protocolDoc').innerHTML =
+  '<div class="doc doc-protocol">'+
+    '<div class="header"><h1>Protokół współpracy</h1><p>Integracja systemu pismAI z platformą '+esc(crm)+'</p></div>'+
+    '<div class="meta2">'+
+      '<div class="meta-box"><h3>Wykonawca (Strona A)</h3>'+
+        '<div class="meta-row"><div class="meta-label">Nazwa:</div><div>'+esc(s.name)+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">NIP:</div><div>'+esc(s.nip||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">REGON:</div><div>'+esc(s.regon||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">Adres:</div><div>'+esc(s.address||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">E-mail:</div><div>'+esc(s.email||'—')+'</div></div>'+
+      '</div>'+
+      '<div class="meta-box"><h3>Zamawiający (Strona B)</h3>'+
+        '<div class="meta-row"><div class="meta-label">Nazwa:</div><div>'+esc(c.name||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">NIP:</div><div>'+esc(c.nip||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">Kontakt:</div><div>'+esc(c.contact||'—')+'</div></div>'+
+        '<div class="meta-row"><div class="meta-label">E-mail:</div><div>'+esc(c.email||'—')+'</div></div>'+
+      '</div>'+
+    '</div>'+
+
+    '<div class="section"><h2>§1. Przedmiot umowy</h2>'+
+      '<p><strong>1.1.</strong> Przedmiotem protokołu jest integracja systemu generowania pism pismAI z platformą '+esc(crm)+' ('+esc(c.domain||'środowisko Zamawiającego')+') dla Zamawiającego.</p>'+
+      '<p><strong>1.2.</strong> Integracja obejmuje automatyczne przekazywanie danych z CRM do Systemu, generowanie odpowiedzi na pisma oraz zwrot wygenerowanego dokumentu do CRM jako załącznika.</p></div>'+
+
+    '<div class="section"><h2>§2. Zakres integracji — pakiet</h2>'+
+      '<div class="price-box"><div class="label">Wybrany pakiet</div><div class="amount">'+r.pkg.label.toUpperCase()+'</div>'+
+      '<div style="font-size:9.5pt;color:#64748b;margin-top:4px;">Cena jednorazowa: '+fmt(r.setupCost)+' + abonament miesięczny: '+fmt(r.maintMonthly)+'/mies.</div></div></div>'+
+
+    '<div class="section"><h2>§3. Warunki techniczne</h2>'+
+      '<p><strong>3.1.</strong> Wykonawca zrealizuje integrację z użyciem: OAuth 2.0, REST API '+esc(crm)+', webhooków, API pismAI.</p>'+
+      '<p><strong>3.2.</strong> Zamawiający zapewni dostęp administracyjny do '+esc(crm)+', dane testowe oraz osobę koordynującą projekt.</p></div>'+
+
+    '<div class="section"><h2>§4. Cena i warunki płatności</h2>'+
+      '<table class="tbl">'+
+        '<tr><th>Pozycja</th><th>Kwota</th><th>Uwagi</th></tr>'+
+        '<tr><td>Cena jednorazowa (wdrożenie)</td><td>'+fmt(r.setupCost)+'</td><td>Płatna przed rozpoczęciem prac</td></tr>'+
+        '<tr><td>Abonament miesięczny</td><td>'+fmt(r.maintMonthly)+'</td><td>Płatna z góry za każdy miesiąc</td></tr>'+
+      '</table>'+
+      '<p><strong>4.1.</strong> W przypadku opóźnienia płatności o więcej niż 7 dni Wykonawca ma prawo wstrzymać realizację zadań.</p></div>'+
+
+    '<div class="section"><h2>§5. Harmonogram realizacji</h2>'+
+      '<table class="tbl">'+
+        '<tr><th>Etap</th><th>Zadania</th><th>Czas</th></tr>'+
+        '<tr><td>1</td><td>Analiza wymagań, OAuth 2.0, mapowanie pól</td><td>'+e1+' dni rob.</td></tr>'+
+        '<tr><td>2</td><td>Webhooki, testy, poprawki</td><td>'+e2+' dni rob.</td></tr>'+
+        '<tr><td>3</td><td>Wdrożenie produkcyjne, szkolenie</td><td>'+e3+' dni rob.</td></tr>'+
+      '</table>'+
+      '<p><strong>5.1.</strong> Całkowity czas realizacji: <strong>'+r.workingDays+' dni roboczych</strong> od podpisania protokołu i pierwszej płatności.</p></div>'+
+
+    '<div class="section"><h2>§6. Gwarancje i wsparcie</h2>'+
+      '<p><strong>6.1.</strong> Wykonawca gwarantuje prawidłowe działanie rozwiązania przez 30 dni od akceptacji przekazania.</p>'+
+      '<p><strong>6.2.</strong> Czas reakcji na zgłoszenia: '+esc(state.protocol.reactionTime||'do 4 godzin')+' w dni robocze.</p></div>'+
+
+    '<div class="section"><h2>§7. Zmiany zakresu</h2>'+
+      '<p><strong>7.1.</strong> Zmiany poza uzgodnionym zakresem wymagają osobnej wyceny i akceptacji obu Stron.</p>'+
+      '<p><strong>7.2.</strong> Dodatkowe prace rozliczane są stawką '+fmt(state.seller.hourlyRate||250)+'/h netto.</p></div>'+
+
+    '<div class="section"><h2>§8. Własność intelektualna</h2>'+
+      '<p><strong>8.1.</strong> Kod integracji pozostaje własnością Wykonawcy. Zamawiający otrzymuje licencję nieograniczonego użytku.</p></div>'+
+
+    '<div class="section"><h2>§9. Rozwiązanie umowy</h2>'+
+      '<p><strong>9.1.</strong> Każda ze Stron może wypowiedzieć umowę z 30-dniowym wypowiedzeniem.</p></div>'+
+
+    '<div class="section"><h2>§10. Postanowienia końcowe</h2>'+
+      '<p><strong>10.1.</strong> Protokół wchodzi w życie z dniem podpisania przez obie Strony w '+esc(state.protocol.city||'[miejscowość]')+', dnia '+fmtDatePL(state.protocol.date)+'.</p>'+
+      '<p><strong>10.2.</strong> W sprawach nieuregulowanych zastosowanie ma Kodeks Cywilny.</p></div>'+
+
+    '<div class="signature-area">'+
+      '<div class="signature-box"><strong>Strona A — Wykonawca</strong><br>'+esc(s.name)+'<br><br><br>Podpis: _________________________</div>'+
+      '<div class="signature-box"><strong>Strona B — Zamawiający</strong><br>'+esc(c.name||'—')+'<br><br><br>Podpis: _________________________</div>'+
+    '</div>'+
+  '</div>';
+}
+
+/* ======================= INTEGRACJA Z BAZĄ DANYCH (API) ======================= */
+let currentContractorId = null;
+
+async function apiFetch(url, opts){
+  opts = opts || {};
+  opts.headers = Object.assign({'Content-Type':'application/json'}, opts.headers||{});
+  const r = await fetch(url, opts);
+  if(r.status === 401){
+    window.location.href = '/login.html';
+    throw new Error('unauthorized');
+  }
+  return r;
+}
+
+async function logout(){
+  try{ await fetch('/api/logout', { method:'POST' }); }catch(e){}
+  window.location.href = '/login.html';
+}
+
+/* --- Ustawienia sprzedawcy --- */
+async function loadSellerSettings(){
+  try{
+    const r = await apiFetch('/api/settings');
+    const seller = await r.json();
+    if(seller && typeof seller === 'object' && Object.keys(seller).length){
+      Object.assign(state.seller, seller);
+    }
+  }catch(e){ console.error('Błąd wczytywania ustawień sprzedawcy:', e); }
+}
+async function saveSellerSettings(){
+  try{
+    await apiFetch('/api/settings', { method:'PUT', body: JSON.stringify(state.seller) });
+  }catch(e){ console.error('Błąd zapisu ustawień sprzedawcy:', e); }
+}
+
+/* --- Kontrahenci --- */
+async function refreshContractorList(){
+  const box = document.getElementById('contractorListBox');
+  try{
+    const r = await apiFetch('/api/contractors');
+    const list = await r.json();
+    if(!list.length){
+      box.innerHTML = '<p style="color:#64748b;font-size:9.5pt;">Brak zapisanych kontrahentów. Wypełnij dane i kliknij „💾 Zapisz" w górnym pasku.</p>';
+      return;
+    }
+    box.innerHTML = list.map(function(c){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0;">'+
+        '<div><strong>'+esc(c.name||'(bez nazwy)')+'</strong>'+
+        '<div style="font-size:8.5pt;color:#94a3b8;">Zapisano: '+new Date(c.updated_at).toLocaleString('pl-PL')+'</div></div>'+
+        '<div style="display:flex;gap:6px;">'+
+        '<button class="btn secondary" onclick="openContractor('+c.id+')">Otwórz</button>'+
+        '<button class="btn danger" onclick="deleteContractor('+c.id+')">Usuń</button>'+
+        '</div></div>';
+    }).join('');
+  }catch(e){
+    box.innerHTML = '<p style="color:#dc2626;font-size:9.5pt;">Błąd wczytywania listy kontrahentów. Sprawdź połączenie z serwerem.</p>';
+  }
+}
+
+async function openContractor(id){
+  try{
+    const r = await apiFetch('/api/contractors/'+id);
+    const data = await r.json();
+    const keepSeller = JSON.parse(JSON.stringify(state.seller));
+    state = JSON.parse(JSON.stringify(INITIAL_STATE));
+    Object.assign(state, data.state || {});
+    state.seller = keepSeller;
+    currentContractorId = data.id;
+    bindAll();
+    recalcAndRender();
+    updateContractorBadge();
+    hideContractorModal();
+    switchTab('dane');
+    await refreshAttachmentsList();
+  }catch(e){
+    alert('Błąd wczytywania kontrahenta.');
+  }
+}
+
+async function deleteContractor(id){
+  if(!confirm('Na pewno usunąć tego kontrahenta i wszystkie jego załączniki? Tej operacji nie można cofnąć.')) return;
+  try{
+    await apiFetch('/api/contractors/'+id, { method:'DELETE' });
+    if(currentContractorId === id){
+      currentContractorId = null;
+      updateContractorBadge();
+      await refreshAttachmentsList();
+    }
+    await refreshContractorList();
+  }catch(e){
+    alert('Błąd usuwania kontrahenta.');
+  }
+}
+
+async function saveCurrentContractor(){
+  const btnStatus = document.getElementById('saveStatus');
+  try{
+    await saveSellerSettings();
+    const payload = {
+      name: state.company.name || '(bez nazwy)',
+      state: {
+        company: state.company,
+        req: state.req,
+        calc: state.calc,
+        offer: state.offer,
+        protocol: state.protocol
+      }
+    };
+    let r;
+    if(currentContractorId){
+      r = await apiFetch('/api/contractors/'+currentContractorId, { method:'PUT', body: JSON.stringify(payload) });
+    } else {
+      r = await apiFetch('/api/contractors', { method:'POST', body: JSON.stringify(payload) });
+    }
+    const data = await r.json();
+    currentContractorId = data.id;
+    updateContractorBadge();
+    if(btnStatus){
+      btnStatus.innerText = '✓ Zapisano ' + new Date().toLocaleTimeString('pl-PL');
+      setTimeout(function(){ btnStatus.innerText=''; }, 4000);
+    }
+  }catch(e){
+    alert('Błąd zapisu kontrahenta. Sprawdź połączenie z serwerem.');
+  }
+}
+
+function updateContractorBadge(){
+  const el = document.getElementById('contractorBadge');
+  const el2 = document.getElementById('contractorBadge2');
+  const text = currentContractorId ? ('#'+currentContractorId+' · '+(state.company.name||'(bez nazwy)')) : 'Nowy (niezapisany)';
+  if(el) el.innerText = text;
+  if(el2) el2.innerText = currentContractorId ? ('— '+text) : '— zapisz kontrahenta, aby dodawać załączniki';
+}
+
+function showContractorModal(){
+  refreshContractorList();
+  document.getElementById('contractorModal').style.display = 'flex';
+}
+function hideContractorModal(){
+  document.getElementById('contractorModal').style.display = 'none';
+}
+
+/* --- Załączniki --- */
+async function refreshAttachmentsList(){
+  const box = document.getElementById('attachmentsListBox');
+  if(!box) return;
+  updateContractorBadge();
+  if(!currentContractorId){
+    box.innerHTML = '<p style="color:#64748b;font-size:9.5pt;">Najpierw zapisz kontrahenta (przycisk „💾 Zapisz" w górnym pasku), aby dodawać załączniki.</p>';
+    return;
+  }
+  try{
+    const r = await apiFetch('/api/contractors/'+currentContractorId+'/files');
+    const files = await r.json();
+    if(!files.length){
+      box.innerHTML = '<p style="color:#64748b;font-size:9.5pt;">Brak załączników dla tego kontrahenta.</p>';
+      return;
+    }
+    box.innerHTML = files.map(function(f){
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #e2e8f0;">'+
+        '<div><strong>'+esc(f.filename)+'</strong>'+
+        '<div style="font-size:8.5pt;color:#94a3b8;">'+(f.size_bytes/1024).toFixed(0)+' KB · '+new Date(f.uploaded_at).toLocaleString('pl-PL')+'</div></div>'+
+        '<div style="display:flex;gap:6px;">'+
+        '<a class="btn secondary" style="text-decoration:none;" href="/api/files/'+f.id+'" target="_blank">Pobierz</a>'+
+        '<button class="btn danger" onclick="deleteFile('+f.id+')">Usuń</button>'+
+        '</div></div>';
+    }).join('');
+  }catch(e){
+    box.innerHTML = '<p style="color:#dc2626;font-size:9.5pt;">Błąd wczytywania załączników.</p>';
+  }
+}
+
+async function uploadAttachment(){
+  if(!currentContractorId){
+    alert('Najpierw zapisz kontrahenta przyciskiem „💾 Zapisz" w górnym pasku.');
+    return;
+  }
+  const input = document.getElementById('fileUploadInput');
+  if(!input.files.length) return;
+  const fd = new FormData();
+  fd.append('file', input.files[0]);
+  try{
+    const r = await fetch('/api/contractors/'+currentContractorId+'/files', { method:'POST', body: fd });
+    if(r.status === 401){ window.location.href = '/login.html'; return; }
+    if(!r.ok){
+      const d = await r.json().catch(function(){ return {}; });
+      alert(d.error || 'Błąd wysyłania pliku.');
+      return;
+    }
+    input.value = '';
+    await refreshAttachmentsList();
+  }catch(e){
+    alert('Błąd wysyłania pliku. Sprawdź połączenie z serwerem.');
+  }
+}
+
+async function deleteFile(fileId){
+  if(!confirm('Usunąć ten plik?')) return;
+  try{
+    await apiFetch('/api/files/'+fileId, { method:'DELETE' });
+    await refreshAttachmentsList();
+  }catch(e){
+    alert('Błąd usuwania pliku.');
+  }
+}
+
+/* ======================= INIT ======================= */
+(async function init(){
+  try{
+    const sessionR = await fetch('/api/session');
+    const sessionData = await sessionR.json();
+    if(!sessionData.authed){
+      window.location.href = '/login.html';
+      return;
+    }
+  }catch(e){
+    console.error('Błąd sprawdzania sesji:', e);
+  }
+  await loadSellerSettings();
+  bindAll();
+  recalcAndRender();
+  updateContractorBadge();
+})();
+</script>
+</body>
+</html>
