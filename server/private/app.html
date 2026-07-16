@@ -874,9 +874,11 @@ function renderOffer(){
       enterprise:['Wszystkie funkcje Standard','Wiele firm/filii','Niestandardowe workflow','Własne szablony','SLA 99,9%','Dedykowany opiekun']
     };
     const feats = featsMap[key];
-    const price = key===rec ? fmt(r.setupCost) : (key==='enterprise' ? 'od '+fmt(p.listPrice) : fmt(p.listPrice));
+    const priceHtml = recommended
+      ? '<div class="price">'+fmt(r.setupCost)+'</div>'
+      : '<div class="price" style="font-size:10pt;color:#94a3b8;font-weight:600;">Wycena po analizie zakresu</div>';
     return '<div class="package '+(recommended?'recommended':'')+'">'+
-      '<h3>'+p.label+'</h3><div class="price">'+price+'</div>'+
+      '<h3>'+p.label+'</h3>'+priceHtml+
       '<ul>'+feats.map(function(f){ return '<li>'+f+'</li>'; }).join('')+'</ul>'+
     '</div>';
   }
