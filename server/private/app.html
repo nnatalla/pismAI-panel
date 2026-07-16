@@ -915,16 +915,39 @@ function bindAll(){
     const val = getPath(state, path);
     if(el.type==='checkbox'){ el.checked = !!val; }
     else if(document.activeElement !== el){ el.value = (val===undefined||val===null)?'':val; }
-    el.removeEventListener('input', el._bindHandler||null);
-    el._bindHandler = ()=>{
-      let v = el.type==='checkbox' ? el.checked : el.value;
-      if(el.type==='number' && v!=='') v=parseFloat(v);
-      if(el.type==='number' && v==='') v=null;
-      setPath(state, path, v);
-    };
-    el.addEventListener('input', el._bindHandler);
+    if(!el._bound){
+      el._bound = true;
+      el.addEventListener('input', ()=>{
+        let v = el.type==='checkbox' ? el.checked : el.value;
+        if(el.type==='number' && v!=='') v=parseFloat(v);
+        if(el.type==='number' && v==='') v=null;
+        setPath(state, path, v);
+      });
+    }
   });
   updateCrmLabels();
+}
+
+/* Wczytuje AKTUALNE wartości z pól formularza do state (przed liczeniem) */
+function syncCalcFromDOM(){
+  const calcPaths = [
+    'seller.hourlyRate',
+    'calc.extraBranches','calc.extraLetterTypes',
+    'calc.includeSync','calc.includeAutomation',
+    'calc.maintenanceMonths','calc.discountPercent','calc.finalSetupOverride',
+    'calc.hourlyHours','calc.riskBuffer','calc.hourlyMaint',
+    'calc.daysE1','calc.daysE2','calc.daysE3',
+    'req.package'
+  ];
+  document.querySelectorAll('[data-bind]').forEach(el=>{
+    const path = el.getAttribute('data-bind');
+    if(!calcPaths.includes(path)) return;
+    let v = el.type==='checkbox' ? el.checked : el.value;
+    if(el.type==='number' && v!=='') v=parseFloat(v);
+    if(el.type==='number' && v==='') v=null;
+    if(el.type==='checkbox') v=el.checked;
+    setPath(state, path, v);
+  });
 }
 
 /* ======================= TABS ======================= */
@@ -1113,11 +1136,16 @@ function renderMixedItemsTable(){
 function adjDays(phase, delta){
   const key = 'days'+phase.charAt(0).toUpperCase()+phase.slice(1);
   state.calc[key] = Math.max(1, (Number(state.calc[key])||1) + delta);
-  bindAll(); recalcAndRender();
+  // Zaktualizuj pole w DOM
+  const inp = document.getElementById('days'+phase.toUpperCase().slice(0,1)+phase.slice(1)+'input');
+  if(inp) inp.value = state.calc[key];
+  recalcAndRender();
 }
 function adjHours(delta){
   state.calc.hourlyHours = Math.max(1, (Number(state.calc.hourlyHours)||20) + delta);
-  bindAll(); recalcAndRender();
+  const inp = document.getElementById('hourlyHoursInput');
+  if(inp) inp.value = state.calc.hourlyHours;
+  recalcAndRender();
 }
 
 /* ======================= KALKULACJA ======================= */
@@ -1197,34 +1225,70 @@ function computeCalc(){
     workingDays = Math.max(pkg.days, Math.ceil(baseH/7.5*5));
   }
 
+  // ---- Ręczna korekta dni → przelicza koszt (1 dzień rob. = 8h × stawka) ----
+  // Pobieramy ręcznie ustawione dni (tylko jeśli użytkownik je wpisał)
+  const rawE1 = (state.calc.daysE1 !== null && state.calc.daysE1 !== undefined && state.calc.daysE1 !== '') ? Number(state.calc.daysE1) : null;
+  const rawE2 = (state.calc.daysE2 !== null && state.calc.daysE2 !== undefined && state.calc.daysE2 !== '') ? Number(state.calc.daysE2) : null;
+  const rawE3 = (state.calc.daysE3 !== null && state.calc.daysE3 !== undefined && state.calc.daysE3 !== '') ? Number(state.calc.daysE3) : null;
+  const hasManualDays = rawE1 !== null || rawE2 !== null || rawE3 !== null;
+
+  // Auto-podział (fallback gdy faza nie ustawiona ręcznie)
+  const autoE1 = Math.round(workingDays*0.25) || 1;
+  const autoE2 = Math.round(workingDays*0.45) || 1;
+  const autoE3 = Math.max(1, workingDays - autoE1 - autoE2);
+  const e1 = rawE1 !== null ? rawE1 : autoE1;
+  const e2 = rawE2 !== null ? rawE2 : autoE2;
+  const e3 = rawE3 !== null ? rawE3 : autoE3;
+  const totalDays = e1 + e2 + e3;
+
+  // Jeśli użytkownik ręcznie ustawił dni — przelicz koszt od dni (nie od h)
+  // Tryb 'fixed' ignoruje — tam koszt z pozycji
+  let daysOverrideInfo = null;
+  if(hasManualDays && calcMode !== 'fixed' && !(state.calc.finalSetupOverride !== null && state.calc.finalSetupOverride !== undefined && state.calc.finalSetupOverride !== '' && !isNaN(state.calc.finalSetupOverride))){
+    const hoursFromDays = totalDays * 8;
+    const newCost = hoursFromDays * rate;
+    daysOverrideInfo = { from: setupCost, to: newCost, days: totalDays };
+    setupCost = newCost;
+    totalHours = hoursFromDays;
+    // Dodaj info do breakdown
+    breakdown = [{ label: 'Ręczna korekta dni (' + totalDays + ' dni × 8h × ' + fmt(rate) + '/h)', val: newCost }];
+  }
+
+  // finalSetupOverride nadpisuje wszystko (łącznie z korektą dni)
+  if(state.calc.finalSetupOverride !== null && state.calc.finalSetupOverride !== undefined && state.calc.finalSetupOverride !== '' && !isNaN(state.calc.finalSetupOverride)){
+    setupCost = Number(state.calc.finalSetupOverride);
+    daysOverrideInfo = null;
+  }
+
   setupCost = setupCost * (1 - discount/100);
   const maintTotal = maintMonthly * months;
   const total = setupCost + maintTotal;
 
-  // Custom days per phase
-  const e1 = Number(state.calc.daysE1) || Math.round(workingDays*0.25) || 1;
-  const e2 = Number(state.calc.daysE2) || Math.round(workingDays*0.45) || 1;
-  const e3 = Number(state.calc.daysE3) || Math.max(1, workingDays - Math.round(workingDays*0.25) - Math.round(workingDays*0.45));
-  const totalDays = e1+e2+e3;
-
-  return { pkg, rate, totalHours, setupCost, maintMonthly, maintTotal, total, workingDays:totalDays, e1, e2, e3, discount, breakdown, months };
+  return { pkg, rate, totalHours, setupCost, maintMonthly, maintTotal, total, workingDays:totalDays, e1, e2, e3, discount, breakdown, months, hasManualDays, daysOverrideInfo };
 }
 
 function recalcAndRender(){
-  bindAll();
+  // NAJPIERW wczytaj aktualne wartości z DOM do state — eliminuje problem "stałej stawki"
+  syncCalcFromDOM();
   renderLineItemsTable();
   renderMixedItemsTable();
   const r = computeCalc();
   const box = document.getElementById('calcResultBox');
+  if(!box) return;
   const modeLabels = {package:'Pakietowa',hourly:'Godzinowa',fixed:'Ryczałt/Pozycje',mixed:'Mieszana'};
 
   let breakdownHtml = '';
   if(r.breakdown && r.breakdown.length){
+    const preDiscountCost = r.discount > 0 ? r.setupCost/(1-r.discount/100) : r.setupCost;
     breakdownHtml = '<table class="breakdown-table" style="margin-top:14px;"><thead><tr><th>Pozycja</th><th>Wartość</th></tr></thead><tbody>' +
       r.breakdown.map(b=>`<tr><td>${esc(b.label)}</td><td class="val">${fmt(b.val)}</td></tr>`).join('') +
-      (r.discount>0?`<tr><td>Rabat (${r.discount}%)</td><td class="val" style="color:#f87171;">−${fmt(r.setupCost/(1-r.discount/100)*r.discount/100)}</td></tr>`:'') +
+      (r.discount>0?`<tr><td>Rabat (${r.discount}%)</td><td class="val" style="color:#f87171;">−${fmt(preDiscountCost*r.discount/100)}</td></tr>`:'') +
       `<tr class="total"><td>Koszt wdrożenia po rabacie</td><td class="val">${fmt(r.setupCost)}</td></tr></tbody></table>`;
   }
+
+  const dniInfo = r.hasManualDays
+    ? `<div style="margin-top:10px;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.3);border-radius:8px;padding:8px 12px;font-size:8.5pt;color:#93c5fd;">📅 Ręczna korekta dni aktywna — koszt przeliczony z ${r.workingDays} dni × 8h × ${fmt(r.rate)}/h. Wyczyść pola dni, by wrócić do kalkulacji z godzin pakietu.</div>`
+    : '';
 
   box.innerHTML =
     `<h3 style="color:#fff;font-size:12pt;margin-bottom:4px;">Wynik kalkulacji <span style="font-size:9.5pt;color:#94a3b8;font-weight:400;">[${modeLabels[calcMode]}]</span></h3>` +
@@ -1239,7 +1303,8 @@ function recalcAndRender(){
       `<div class="stat"><div class="label">SUMA CAŁKOWITA</div><div class="value green" style="font-size:20pt;">${fmt(r.total)}</div></div>` +
     `</div>` +
     breakdownHtml +
-    `<div style="margin-top:14px;color:#94a3b8;font-size:8.5pt;">Etap 1: ${r.e1} dni | Etap 2: ${r.e2} dni | Etap 3: ${r.e3} dni</div>`;
+    dniInfo +
+    `<div style="margin-top:10px;color:#94a3b8;font-size:8.5pt;">Etap 1: ${r.e1} dni | Etap 2: ${r.e2} dni | Etap 3: ${r.e3} dni</div>`;
 }
 
 /* ======================= OFERTA ======================= */
