@@ -613,10 +613,14 @@ function buildClientFormHTML(c){
   lines.push('.banner{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:12px 14px;font-size:10pt;color:#1e40af;margin-bottom:18px;}');
   lines.push('.section{margin-bottom:20px;background:#fff;}');
   lines.push('.section h2{font-size:12pt;font-weight:700;color:#0f172a;margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid #e2e8f0;}');
+  lines.push('.field{margin-bottom:14px;}');
+  lines.push('.field label{display:block;font-weight:600;color:#334155;margin-bottom:5px;font-size:9.5pt;}');
   lines.push('.checklist{list-style:none;padding:0;}');
   lines.push('.checklist li{display:flex;align-items:flex-start;gap:9px;margin-bottom:8px;font-size:10.5pt;}');
   lines.push('.checklist input[type=checkbox]{margin-top:3px;}');
-  lines.push('select,textarea,input[type=text]{width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:10pt;font-family:inherit;margin-top:4px;}');
+  lines.push('.checklist input[type=text]{width:220px;display:inline-block;margin-left:6px;margin-top:0;}');
+  lines.push('.row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}');
+  lines.push('select,textarea,input[type=text]{width:100%;padding:8px 10px;border:1.5px solid #cbd5e1;border-radius:8px;font-size:10pt;font-family:inherit;margin-top:4px;box-sizing:border-box;}');
   lines.push('.btnbar{position:sticky;bottom:0;background:#fff;border-top:1px solid #e2e8f0;padding:14px 0;text-align:center;margin-top:30px;}');
   lines.push('.btn{background:#2563eb;color:#fff;border:none;padding:12px 26px;border-radius:8px;font-weight:700;font-size:11pt;cursor:pointer;}');
   lines.push('.status{margin-top:10px;font-size:10pt;color:#16a34a;font-weight:600;}');
@@ -625,46 +629,90 @@ function buildClientFormHTML(c){
   lines.push('<p>Firma: <strong>'+esc(c.name||'—')+'</strong> · Osoba kontaktowa: '+esc(c.contact||'—')+'</p></div>');
   lines.push('<div class="banner">Prosimy o zaznaczenie odpowiednich opcji, a następnie kliknięcie przycisku <strong>„Zapisz odpowiedzi"</strong> na dole strony. Pobrany plik .json prosimy odesłać na nasz adres e-mail.</div>');
 
+  // 1. Zakres integracji
   lines.push('<div class="section"><h2>1. Zakres integracji</h2>');
-  lines.push('<label>Który pakiet Cię interesuje?</label>');
-  lines.push('<select id="package"><option value="pilot">Pilot</option><option value="standard" selected>Standard</option><option value="enterprise">Enterprise</option></select>');
-  lines.push('<ul class="checklist" style="margin-top:12px;">');
-  lines.push('<li><input type="checkbox" checked disabled> Automatyczne generowanie pisma po wezwaniu (zawsze wliczone)</li>');
-  lines.push('<li><input type="checkbox" checked disabled> PDF jako załącznik do sprawy w CRM (zawsze wliczone)</li>');
-  lines.push('<li><input type="checkbox" id="sync"> Synchronizacja kontaktów (dłużnicy/komornicy)</li>');
+  lines.push('<div class="field"><label>Który pakiet Cię interesuje?</label>');
+  lines.push('<select id="package"><option value="pilot">Pilot — 1 typ pisma, podstawowa automatyzacja</option><option value="standard" selected>Standard — wszystkie typy, pełna sync</option><option value="enterprise">Enterprise — wiele firm, SLA, custom workflow</option></select></div>');
+  lines.push('<ul class="checklist">');
+  lines.push('<li><input type="checkbox" checked disabled> <strong>Automatyczne generowanie pisma po wezwaniu w '+esc(crm)+'</strong> (zawsze wliczone)</li>');
+  lines.push('<li><input type="checkbox" checked disabled> <strong>PDF z odpowiedzią jako załącznik do sprawy w CRM</strong> (zawsze wliczone)</li>');
+  lines.push('<li><input type="checkbox" id="sync"> Synchronizacja kontaktów (dłużnicy/komornicy) '+esc(crm)+' ⇄ pismAI</li>');
   lines.push('<li><input type="checkbox" id="autoTask"> Automatyczne tworzenie zadania po wygenerowaniu pisma</li>');
-  lines.push('<li><input type="checkbox" id="dealStatus"> Aktualizacja statusu sprawy w CRM</li>');
+  lines.push('<li><input type="checkbox" id="dealStatus"> Aktualizacja statusu sprawy w CRM po wygenerowaniu odpowiedzi</li>');
   lines.push('<li><input type="checkbox" id="docBack"> Zwrot pisma do CRM jako dokument</li>');
-  lines.push('<li><input type="checkbox" id="apiButton"> Dostęp do API pismAI z poziomu '+esc(crm)+'</li>');
+  lines.push('<li><input type="checkbox" id="apiButton"> Dostęp do API pismAI z poziomu '+esc(crm)+' (przycisk)</li>');
   lines.push('</ul></div>');
 
-  lines.push('<div class="section"><h2>2. Typy pism</h2><ul class="checklist">');
+  // 2. Typy pism
+  lines.push('<div class="section"><h2>2. Typy pism do integracji</h2><ul class="checklist">');
   lines.push('<li><input type="checkbox" id="t_komornicze" checked> Pisma komornicze</li>');
   lines.push('<li><input type="checkbox" id="t_urzedowe"> Pisma urzędowe (ZUS, US, gmina)</li>');
   lines.push('<li><input type="checkbox" id="t_bankowe"> Pisma bankowe/windykacyjne</li>');
   lines.push('<li><input type="checkbox" id="t_sadowe"> Pisma sądowe</li>');
   lines.push('<li><input type="checkbox" id="t_szkolne"> Pisma szkolne/uczelniane</li>');
   lines.push('<li><input type="checkbox" id="t_prywatne"> Pisma prywatne</li>');
-  lines.push('<li>Inne: <input type="text" id="t_inne" style="width:220px;"></li>');
-  lines.push('</ul></div>');
+  lines.push('<li>Inne: <input type="text" id="t_inne"></li>');
+  lines.push('</ul>');
+  lines.push('<div class="field" style="margin-top:10px;"><label>Custom pola dla spraw komorniczych w '+esc(crm)+'</label>');
+  lines.push('<select id="customFieldsStatus"><option value="">— wybierz —</option><option>Tak, wszystko skonfigurowane</option><option>Częściowo</option><option>Nie — od zera</option></select></div>');
+  lines.push('</div>');
 
+  // 3. Środowisko CRM
   lines.push('<div class="section"><h2>3. Środowisko '+esc(crm)+'</h2>');
-  lines.push('<label>Domena / adres '+esc(crm)+'</label><input type="text" id="domain" placeholder="np. firma.bitrix24.pl">');
-  lines.push('<label style="margin-top:10px;display:block;">Liczba firm/filii w CRM</label><input type="text" id="branches" placeholder="np. 1">');
+  lines.push('<div class="field"><label>Domena / adres '+esc(crm)+'</label><input type="text" id="domain" placeholder="np. firma.bitrix24.pl"></div>');
+  lines.push('<div class="field"><label>Liczba firm/filii w CRM</label><input type="text" id="branches" placeholder="np. 1"></div>');
   lines.push('</div>');
 
+  // 4. Procesy i automatyzacja
   lines.push('<div class="section"><h2>4. Procesy i automatyzacja</h2>');
-  lines.push('<label>Kto zatwierdza pismo przed wysłaniem?</label>');
-  lines.push('<select id="approver"><option value="">— wybierz —</option><option>Kierownik/Dyrektor operacyjny</option><option>Pracownik ds. kadr</option><option>Prawnik/Kancelaria</option><option>Nikt — wysyłka automatyczna</option></select>');
+  lines.push('<div class="field"><label>Kiedy ma się generować pismo?</label><ul class="checklist">');
+  lines.push('<li><input type="checkbox" id="trig_onStatus"> Po zmianie statusu sprawy w CRM</li>');
+  lines.push('<li><input type="checkbox" id="trig_onSchedule"> Po dodaniu wpisu w harmonogramie/zadaniu</li>');
+  lines.push('<li><input type="checkbox" id="trig_onEmail"> Po otrzymaniu e-maila w '+esc(crm)+'</li>');
+  lines.push('<li><input type="checkbox" id="trig_manual" checked> Manualnie — przycisk w interfejsie</li>');
+  lines.push('<li>Inne: <input type="text" id="trig_other"></li>');
+  lines.push('</ul></div>');
+  lines.push('<div class="field"><label>Kto zatwierdza pismo przed wysłaniem?</label>');
+  lines.push('<select id="approver"><option value="">— wybierz —</option><option>Kierownik/Dyrektor operacyjny</option><option>Pracownik ds. kadr</option><option>Prawnik/Kancelaria</option><option>Nikt — wysyłka automatyczna</option></select></div>');
+  lines.push('<div class="field"><label>Po wygenerowaniu pisma system ma automatycznie:</label><ul class="checklist">');
+  lines.push('<li><input type="checkbox" id="pa_changeStatus"> Zmienić status sprawy w CRM</li>');
+  lines.push('<li><input type="checkbox" id="pa_createTask"> Stworzyć zadanie „Wydrukuj i wyślij"</li>');
+  lines.push('<li><input type="checkbox" id="pa_notify"> Wysłać powiadomienie e-mail/SMS</li>');
+  lines.push('<li><input type="checkbox" id="pa_saveDrive"> Zapisać pismo na dysku '+esc(crm)+'</li>');
+  lines.push('</ul></div>');
   lines.push('</div>');
 
-  lines.push('<div class="section"><h2>5. Baza pracowników</h2>');
-  lines.push('<label>Synchronizacja bazy pracowników z '+esc(crm)+'?</label>');
-  lines.push('<select id="employeeSync"><option value="">— wybierz —</option><option value="yes">Tak</option><option value="no">Nie</option><option value="oneway">Tak, jednokierunkowo</option></select>');
+  // 5. Baza pracowników
+  lines.push('<div class="section"><h2>5. Baza pracowników i synchronizacja</h2>');
+  lines.push('<div class="field"><label>Synchronizacja bazy pracowników z '+esc(crm)+'?</label>');
+  lines.push('<select id="employeeSync"><option value="">— wybierz —</option><option value="yes">Tak — import z CRM do pismAI</option><option value="no">Nie — dane ręcznie</option><option value="oneway">Tak, jednokierunkowo (pismAI → CRM)</option></select></div>');
+  lines.push('<div class="field"><label>Skąd dane pracowników (PESEL, imię, status zatrudnienia)?</label><ul class="checklist">');
+  lines.push('<li><input type="checkbox" id="es_bitrixModule"> Moduł „Pracownicy" w '+esc(crm)+'</li>');
+  lines.push('<li><input type="checkbox" id="es_googleSheets"> Arkusz Google Sheets</li>');
+  lines.push('<li><input type="checkbox" id="es_externalHR"> Zewnętrzny system kadrowy</li>');
+  lines.push('<li><input type="checkbox" id="es_excel"> Excel/CSV — import jednorazowy</li>');
+  lines.push('<li>Inne: <input type="text" id="es_other"></li>');
+  lines.push('</ul></div>');
   lines.push('</div>');
 
-  lines.push('<div class="section"><h2>6. Uwagi dodatkowe</h2>');
-  lines.push('<textarea id="notes" rows="4" placeholder="Opisz niestandardowe potrzeby..."></textarea>');
+  // 6. Integracje i harmonogram
+  lines.push('<div class="section"><h2>6. Integracje i harmonogram</h2>');
+  lines.push('<div class="field"><label>Integracje z innymi systemami</label><ul class="checklist">');
+  lines.push('<li><input type="checkbox" id="int_hr"> System kadrowy</li>');
+  lines.push('<li><input type="checkbox" id="int_debt"> Platforma windykacyjna</li>');
+  lines.push('<li><input type="checkbox" id="int_postal"> Usługi pocztowe/wysyłka listów</li>');
+  lines.push('<li>Inne: <input type="text" id="int_other"></li>');
+  lines.push('</ul></div>');
+  lines.push('<div class="row">');
+  lines.push('<div class="field"><label>Planowany start wdrożenia</label>');
+  lines.push('<select id="startPlan"><option value="">— wybierz —</option><option>Jak najszybciej</option><option>W ciągu 1 miesiąca</option><option>W ciągu 3 miesięcy</option><option>Jeszcze nie ustalono</option></select></div>');
+  lines.push('<div class="field"><label>Termin docelowy (jeśli jest)</label><input type="text" id="deadline" placeholder="np. do końca kwartału"></div>');
+  lines.push('</div>');
+  lines.push('</div>');
+
+  // 7. Uwagi dodatkowe
+  lines.push('<div class="section"><h2>7. Uwagi dodatkowe</h2>');
+  lines.push('<textarea id="notes" rows="4" placeholder="Opisz niestandardowe potrzeby, przykładowe scenariusze, limity integracji itp."></textarea>');
   lines.push('</div>');
 
   lines.push('<div class="btnbar"><button class="btn" onclick="saveAnswers()">Zapisz odpowiedzi (.json)</button><div class="status" id="status"></div></div>');
@@ -674,10 +722,21 @@ function buildClientFormHTML(c){
   lines.push('function saveAnswers(){');
   lines.push('var data={');
   lines.push('company:{name:'+JSON.stringify(c.name||'')+', contact:'+JSON.stringify(c.contact||'')+', domain:val("domain"), branches:val("branches")},');
-  lines.push('req:{package:val("package"),');
+  lines.push('req:{');
+  lines.push('package:val("package"),');
   lines.push('letterTypes:{komornicze:val("t_komornicze"),urzedowe:val("t_urzedowe"),bankowe:val("t_bankowe"),sadowe:val("t_sadowe"),szkolne:val("t_szkolne"),prywatne:val("t_prywatne"),inne:val("t_inne")},');
   lines.push('scope:{sync:val("sync"),autoTask:val("autoTask"),dealStatus:val("dealStatus"),docBack:val("docBack"),apiButton:val("apiButton")},');
-  lines.push('approver:val("approver"), employeeSync:val("employeeSync"), notes:val("notes")}');
+  lines.push('customFieldsStatus:val("customFieldsStatus"),');
+  lines.push('triggers:{onStatus:val("trig_onStatus"),onSchedule:val("trig_onSchedule"),onEmail:val("trig_onEmail"),manual:val("trig_manual"),other:val("trig_other")},');
+  lines.push('approver:val("approver"),');
+  lines.push('postActions:{changeStatus:val("pa_changeStatus"),createTask:val("pa_createTask"),notify:val("pa_notify"),saveDrive:val("pa_saveDrive")},');
+  lines.push('employeeSync:val("employeeSync"),');
+  lines.push('employeeSource:{bitrixModule:val("es_bitrixModule"),googleSheets:val("es_googleSheets"),externalHR:val("es_externalHR"),excel:val("es_excel"),other:val("es_other")},');
+  lines.push('integrations:{hr:val("int_hr"),debt:val("int_debt"),postal:val("int_postal"),other:val("int_other")},');
+  lines.push('startPlan:val("startPlan"),');
+  lines.push('deadline:val("deadline"),');
+  lines.push('notes:val("notes")');
+  lines.push('}');
   lines.push('};');
   lines.push('var blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});');
   lines.push('var url=URL.createObjectURL(blob);');
@@ -702,8 +761,15 @@ function loadRequirementsFile(ev){
         if(data.req.package) state.req.package = data.req.package;
         if(data.req.letterTypes) Object.assign(state.req.letterTypes, normalizeBoolMap(data.req.letterTypes));
         if(data.req.scope) Object.assign(state.req.scope, normalizeBoolMap(data.req.scope));
+        if(data.req.customFieldsStatus) state.req.customFieldsStatus = data.req.customFieldsStatus;
+        if(data.req.triggers) Object.assign(state.req.triggers, normalizeBoolMap(data.req.triggers));
         if(data.req.approver) state.req.approver = data.req.approver;
+        if(data.req.postActions) Object.assign(state.req.postActions, normalizeBoolMap(data.req.postActions));
         if(data.req.employeeSync) state.req.employeeSync = data.req.employeeSync;
+        if(data.req.employeeSource) Object.assign(state.req.employeeSource, normalizeBoolMap(data.req.employeeSource));
+        if(data.req.integrations) Object.assign(state.req.integrations, normalizeBoolMap(data.req.integrations));
+        if(data.req.startPlan) state.req.startPlan = data.req.startPlan;
+        if(data.req.deadline) state.req.deadline = data.req.deadline;
         if(data.req.notes) state.req.notes = data.req.notes;
       }
       bindAll();
